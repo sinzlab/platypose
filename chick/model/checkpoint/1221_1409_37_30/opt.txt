@@ -1,0 +1,39 @@
+==> Args:
+  actions: *
+  batch_size: 2
+  channel: 512
+  checkpoint: checkpoint/1221_1409_37_30
+  crop_uv: 0
+  d_hid: 1024
+  data_augmentation: True
+  dataset: h36m
+  downsample: 1
+  frames: 30
+  gpu: 0
+  in_channels: 2
+  keypoints: gt
+  large_decay_epoch: 5
+  layers: 3
+  lr: 0.001
+  lr_decay: 0.95
+  lr_decay_large: 0.5
+  n_joints: 17
+  nepoch: 15
+  out_all: 1
+  out_channels: 3
+  out_joints: 17
+  pad: 14
+  previous_best_threshold: inf
+  previous_dir: 
+  previous_name: 
+  reverse_augmentation: False
+  root_path: dataset/
+  stride: 1
+  subjects_test: S9,S11
+  subjects_train: S1,S5,S6,S7,S8
+  subset: 1
+  test: False
+  test_augmentation: False
+  train: 1
+  workers: 8
+==> Args:

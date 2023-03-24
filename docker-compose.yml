@@ -1,0 +1,43 @@
+version: '3.4'
+x-build: &build
+  context: .
+  dockerfile: Dockerfile
+
+x-shared: &common
+  build:
+    context: .
+    dockerfile: Dockerfile
+
+services:
+  base:
+    image: chick
+    <<: *common
+    volumes:
+      - .:/src/propose
+      - ./scripts:/scripts
+      - ./data:/data
+
+  python:
+    &python
+    image: chick
+    entrypoint: [ "python" ]
+
+  train:
+    image: chick
+    volumes:
+      - ./scripts:/scripts
+      - ./dataset:/src/dataset
+      - ./experiments:/experiments
+      - ./output:/output
+      - ./chick:/src/chick
+      - ./common:/src/common
+    entrypoint: [ "python", "./main.py" ]
+
+  eval:
+    image: chick
+    volumes:
+      - ./scripts:/scripts
+      - ./data:/data
+      - ./experiments:/experiments
+      - ./output:/output
+    entrypoint: [ "python", "./eval.py" ]
