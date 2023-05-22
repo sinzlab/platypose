@@ -8,15 +8,51 @@ def load_model_wo_clip(model, state_dict):
     assert len(unexpected_keys) == 0
     assert all([k.startswith("clip_model.") for k in missing_keys])
 
-
 def create_model_and_diffusion(args):
     model = MDM(**get_model_args(args))
     diffusion = create_gaussian_diffusion(args)
     return model, diffusion
 
+def diffusion_defaults():
+    """
+    Defaults for image and classifier training.
+    """
+    return dict(
+        learn_sigma=True,
+        diffusion_steps=1000,
+        noise_schedule="linear",
+        timestep_respacing="250",
+        use_kl=False,
+        predict_xstart=False,
+        rescale_timesteps=False,
+        rescale_learned_sigmas=False,
+    )
+
+def model_and_diffusion_defaults():
+    """
+    Defaults for image training.
+    """
+    res = dict(
+        image_size=128,
+        num_channels=256,
+        num_res_blocks=2,
+        num_heads=4,
+        num_heads_upsample=-1,
+        num_head_channels=-1,
+        attention_resolutions="32,16,8",
+        channel_mult="",
+        dropout=0.0,
+        class_cond=False,
+        use_checkpoint=False,
+        use_scale_shift_norm=True,
+        resblock_updown=True,
+        use_fp16=False,
+        use_new_attention_order=False,
+    )
+    res.update(diffusion_defaults())
+    return res
 
 def get_model_args(args):
-
     # default args
     clip_version = "ViT-B/32"
     action_emb = "tensor"

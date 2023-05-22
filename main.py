@@ -1,5 +1,6 @@
 import random
 
+from chick.train.train_platforms import NoPlatform
 from chick.train.training_loop import TrainLoop
 from chick.utils.fixseed import fixseed
 from chick.utils.model_util import create_model_and_diffusion

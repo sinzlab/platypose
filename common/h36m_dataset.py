@@ -421,8 +421,8 @@ class Human36mDataset(MocapDataset):
 
                 cam["intrinsic"] = np.concatenate(
                     (
-                        cam["focal_length"],
                         cam["center"],
+                        cam["focal_length"],
                         cam["radial_distortion"],
                         cam["tangential_distortion"],
                     )

@@ -40,4 +40,6 @@ services:
       - ./data:/data
       - ./experiments:/experiments
       - ./output:/output
-    entrypoint: [ "python", "./eval.py" ]
+      - ./chick:/src/chick
+      - ./:/src
+    entrypoint: [ "python", "/src/scripts/eval.py" ]
