@@ -48,7 +48,7 @@ class TrainLoop:
         self.global_batch = self.batch_size  # * dist.get_world_size()
         self.num_steps = args.num_steps
         self.num_epochs = self.num_steps // len(self.data) + 1
-
+        print(f"epochs: {self.num_epochs}")
         self.sync_cuda = torch.cuda.is_available()
 
         self._load_and_sync_parameters()
@@ -312,7 +312,7 @@ class TrainLoop:
         logger.logkv("samples", (self.step + self.resume_step + 1) * self.global_batch)
 
     def ckpt_file_name(self):
-        return f"model{(self.step+self.resume_step):09d}.pt"
+        return f"model{(self.step+self.resume_step):09d}_30_frames.pt"
 
     def save(self):
         def save_checkpoint(params):

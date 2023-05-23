@@ -679,21 +679,23 @@ class GaussianDiffusion:
         return final["sample"]
 
     def p_sample_loop_progressive(
-        self,
-        model,
-        shape,
-        noise=None,
-        clip_denoised=True,
-        denoised_fn=None,
-        cond_fn=None,
-        model_kwargs=None,
-        device=None,
-        progress=False,
-        skip_timesteps=0,
-        init_image=None,
-        randomize_class=False,
-        cond_fn_with_grad=False,
-        const_noise=False,
+            self,
+            model,
+            shape,
+            noise=None,
+            clip_denoised=True,
+            denoised_fn=None,
+            cond_fn=None,
+            model_kwargs=None,
+            device=None,
+            progress=False,
+            skip_timesteps=0,
+            init_image=None,
+            randomize_class=False,
+            cond_fn_with_grad=False,
+            const_noise=False,
+            energy_fn=None,
+            energy_scale=1.0
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -723,7 +725,6 @@ class GaussianDiffusion:
         if progress:
             # Lazy import so that we don't depend on tqdm.
             from tqdm.auto import tqdm
-
             indices = tqdm(indices)
 
         for i in indices:
@@ -735,22 +736,30 @@ class GaussianDiffusion:
                     size=model_kwargs["y"].shape,
                     device=model_kwargs["y"].device,
                 )
-            with th.no_grad():
-                sample_fn = (
-                    self.p_sample_with_grad if cond_fn_with_grad else self.p_sample
-                )
-                out = sample_fn(
-                    model,
-                    img,
-                    t,
-                    clip_denoised=clip_denoised,
-                    denoised_fn=denoised_fn,
-                    cond_fn=cond_fn,
-                    model_kwargs=model_kwargs,
-                    const_noise=const_noise,
-                )
-                yield out
-                img = out["sample"]
+            sample_fn = (
+                self.p_sample_with_grad if cond_fn_with_grad else self.p_sample
+            )
+            img = img.requires_grad_()
+            out = sample_fn(
+                model,
+                img,
+                t,
+                clip_denoised=clip_denoised,
+                denoised_fn=denoised_fn,
+                cond_fn=cond_fn,
+                model_kwargs=model_kwargs,
+                const_noise=const_noise,
+            )
+            energy = energy_fn(out["pred_xstart"])
+            alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, img.shape)
+            norm_grad = th.autograd.grad(outputs=energy['train'], inputs=img)[0]
+            # update = (norm_grad / th.norm(norm_grad) * energy_scale)
+            update = (norm_grad * energy_scale)
+            out["sample"] = out["sample"] - update
+            yield out
+            img = out["sample"]
+            # Clears out small amount of gpu memory. If not used, memory usage will accumulate and OOM will occur.
+            img.detach_()
 
     def ddim_sample(
         self,
