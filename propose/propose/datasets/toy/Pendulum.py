@@ -3,11 +3,10 @@ from itertools import combinations
 
 import brax
 import torch
+from propose.training.utils import get_x_graph
 from torch.utils.data import Dataset
 from torch_geometric.data import HeteroData
 from tqdm import tqdm
-
-from propose.training.utils import get_x_graph
 
 
 class PendulumDataset(Dataset):

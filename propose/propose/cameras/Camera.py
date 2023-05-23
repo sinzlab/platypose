@@ -75,9 +75,13 @@ class Camera(object):
         :return: Camera matrix. M = [R | t]C
         """
         return (
-            torch.cat((self.rotation_matrix, self.translation_vector), axis=0)
-            @ self.intrinsic_matrix
-        ).float().to(self.device)
+            (
+                torch.cat((self.rotation_matrix, self.translation_vector), axis=0)
+                @ self.intrinsic_matrix
+            )
+            .float()
+            .to(self.device)
+        )
 
     def proj2D(self, points: Point3D, distort: bool = True) -> Point2D:
         """
@@ -91,8 +95,7 @@ class Camera(object):
         camera_matrix = self.camera_matrix()
 
         extended_points = torch.cat(
-            (points, torch.ones((*points.shape[:-1], 1), device=self.device)),
-            axis=-1
+            (points, torch.ones((*points.shape[:-1], 1), device=self.device)), axis=-1
         )
 
         projected_points = extended_points @ camera_matrix  # (u, v, z)

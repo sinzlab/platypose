@@ -4,10 +4,9 @@ import pandas as pd
 import seaborn as sns
 import torch
 import torch.nn as nn
+from propose.poses.human36m import Human36mPose
 from torch_geometric.loader.dataloader import Collater
 from tqdm import tqdm
-
-from propose.poses.human36m import Human36mPose
 
 from .utils import get_x_graph
 

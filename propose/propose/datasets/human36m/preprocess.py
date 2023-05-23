@@ -5,7 +5,6 @@ from typing import Union
 
 import cdflib
 import numpy as np
-
 from propose.datasets.human36m.loaders import load_cameras, load_poses
 from propose.poses.human36m import MPII_2_H36M
 

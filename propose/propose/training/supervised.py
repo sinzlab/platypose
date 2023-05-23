@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
+from propose.evaluation.mpjpe import mpjpe
 from torch_geometric.loader.dataloader import Collater
 from tqdm import tqdm
-
-from propose.evaluation.mpjpe import mpjpe
 
 
 def supervised_trainer(

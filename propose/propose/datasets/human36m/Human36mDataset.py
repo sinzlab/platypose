@@ -4,12 +4,11 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.distributions as D
+from propose.poses.human36m import Human36mPose
 from torch.utils.data import Dataset
 from torch_geometric.data import HeteroData
 from torch_geometric.loader.dataloader import Collater
 from tqdm import tqdm
-
-from propose.poses.human36m import Human36mPose
 
 
 class Human36mDataset(Dataset):

@@ -1,18 +1,15 @@
+import propose.poses
 import torch
 import wandb
-from torch_geometric.data import HeteroData
-
-import propose.poses
 from propose.models.distributions import StandardNormal
 from propose.models.flows.GraphFlow import GraphFlow
 from propose.models.nn.CondGNN import CondGNN
 from propose.models.nn.embedding import embeddings
-from propose.models.transforms.transform import (
-    GraphActNorm,
-    GraphAffineCouplingTransform,
-    GraphCompositeTransform,
-)
+from propose.models.transforms.transform import (GraphActNorm,
+                                                 GraphAffineCouplingTransform,
+                                                 GraphCompositeTransform)
 from propose.poses.human36m import Human36mPose, MPIIPose
+from torch_geometric.data import HeteroData
 
 
 class CondGraphFlow(GraphFlow):

@@ -6,7 +6,6 @@ from xml.dom import minidom
 
 import cdflib
 import numpy as np
-
 from propose.cameras import Camera
 from propose.poses.utils import load_data_ids
 

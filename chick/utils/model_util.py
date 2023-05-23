@@ -8,10 +8,12 @@ def load_model_wo_clip(model, state_dict):
     assert len(unexpected_keys) == 0
     assert all([k.startswith("clip_model.") for k in missing_keys])
 
+
 def create_model_and_diffusion(args):
     model = MDM(**get_model_args(args))
     diffusion = create_gaussian_diffusion(args)
     return model, diffusion
+
 
 def diffusion_defaults():
     """
@@ -27,6 +29,7 @@ def diffusion_defaults():
         rescale_timesteps=False,
         rescale_learned_sigmas=False,
     )
+
 
 def model_and_diffusion_defaults():
     """
@@ -51,6 +54,7 @@ def model_and_diffusion_defaults():
     )
     res.update(diffusion_defaults())
     return res
+
 
 def get_model_args(args):
     # default args
