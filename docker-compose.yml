@@ -21,6 +21,8 @@ services:
     &python
     image: chick
     entrypoint: [ "python" ]
+    env_file:
+        - .env
 
   train:
     image: chick
@@ -32,6 +34,8 @@ services:
       - ./chick:/src/chick
       - ./common:/src/common
     entrypoint: [ "python", "./main.py" ]
+    env_file:
+        - .env
 
   eval:
     image: chick
@@ -43,3 +47,5 @@ services:
       - ./chick:/src/chick
       - ./:/src
     entrypoint: [ "python", "/src/scripts/eval.py" ]
+    env_file:
+        - .env

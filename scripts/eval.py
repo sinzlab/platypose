@@ -7,6 +7,7 @@ import os
 import random
 import re
 import sys
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,6 +16,7 @@ import torch
 import torch.nn as nn
 import torch.utils.data
 import torch.optim as optim
+import wandb
 
 sys.path.append("/src")
 
@@ -35,6 +37,7 @@ from propose.propose.poses.human36m import Human36mPose
 from propose.propose.cameras.Camera import Camera
 from tqdm import tqdm
 from lipstick import GifMaker
+
 
 opt = opts().parse()
 args = train_args()
@@ -269,6 +272,13 @@ if __name__ == '__main__':
     model, diffusion = create_model_and_diffusion(args)
     # state_dict = torch.load('./output/model000633659.pt', map_location='cpu')
     state_dict = torch.load('./old_model.pt', map_location='cpu')
+    # wandb.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
+    # artifact = wandb.Artifact(
+    #     name="MDM_H36m_1_frame_50_steps",
+    #     type="model",
+    # )
+    # artifact.add_file("./old_model.pt", name="model.pt")
+    # wandb.run.log_artifact(artifact)
     model.load_state_dict(state_dict, strict=False)
     model.eval()
     device = torch.device("cpu")

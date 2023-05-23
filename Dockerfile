@@ -10,3 +10,4 @@ RUN pip install torch-geometric
 RUN pip install torch-scatter==2.0.9 -f https://data.pyg.org/whl/torch-1.9.0+cu111.html
 RUN pip install torch-sparse==0.6.12 -f https://data.pyg.org/whl/torch-1.9.0+cu111.html
 RUN pip install lipstick
+RUN pip install wandb
