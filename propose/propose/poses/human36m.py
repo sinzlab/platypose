@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 import torch
-from torch_geometric.data import HeteroData
 
 from .base import YamlPose
 
@@ -39,28 +38,6 @@ class Human36mPose(YamlPose):
             pose_matrix = np.zeros((1, 17, 3))
 
         super().__init__(pose_matrix, path)
-
-    def conditional_graph(self, context: "BasePose") -> HeteroData:
-        graph_dict = self._construct_conditional_graph_dict(context)
-
-        edges = graph_dict[("x", "->", "x")]["edge_index"]
-        context_edges = graph_dict[("c", "->", "x")]["edge_index"]
-
-        edges, root_edges, context_edges = self.remove_root_edges(
-            edges, context_edges, num_context_samples=1
-        )
-
-        graph_dict[("x", "->", "x")]["edge_index"] = edges
-        graph_dict[("x", "<-", "x")]["edge_index"] = edges
-        graph_dict[("c", "->", "x")]["edge_index"] = context_edges
-        graph_dict[("r", "->", "x")] = dict(edge_index=root_edges)
-        graph_dict[("r", "<-", "x")] = dict(edge_index=root_edges)
-
-        graph_dict["r"] = dict(x=graph_dict["x"]["x"][..., :1, :])
-        graph_dict["x"]["x"] = graph_dict["x"]["x"][..., 1:, :]
-        graph_dict["c"]["x"] = graph_dict["c"]["x"][..., 1:, :]
-
-        return HeteroData(graph_dict)
 
     @classmethod
     def remove_root_edges(cls, edges, context_edges, num_context_samples):

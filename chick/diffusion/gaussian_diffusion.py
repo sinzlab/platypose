@@ -751,8 +751,16 @@ class GaussianDiffusion:
                 const_noise=const_noise,
             )
             energy = energy_fn(out["pred_xstart"])
+            energy['train'] = energy['train']
             alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, img.shape)
-            norm_grad = th.autograd.grad(outputs=energy['train'], inputs=img)[0]
+            grad_outputs = th.ones_like(energy['train'])
+
+            # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
+            norm_grad = th.autograd.grad(
+                outputs=energy['train'],
+                inputs=img,
+                grad_outputs=grad_outputs
+            )[0]
             # update = (norm_grad / th.norm(norm_grad) * energy_scale)
             update = (norm_grad * energy_scale)
             out["sample"] = out["sample"] - update

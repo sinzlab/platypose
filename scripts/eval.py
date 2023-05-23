@@ -38,7 +38,6 @@ from propose.propose.cameras.Camera import Camera
 from tqdm import tqdm
 from lipstick import GifMaker
 
-
 opt = opts().parse()
 args = train_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = opt.gpu
@@ -246,6 +245,7 @@ def plot_3D(gt_3D, samples, name, n_frames, alpha=0.1):
                 g.add(fig)
 
 if __name__ == '__main__':
+    print('Loading options...')
     opt.manualSeed = 1
     random.seed(opt.manualSeed)
     torch.manual_seed(opt.manualSeed)
@@ -295,21 +295,11 @@ if __name__ == '__main__':
     sampling_model.to(device)
     sampling_model.eval()  # disable random masking
 
-    energy_scale = [50, 75, 100, 125, 150, 175, 200]
     sample_fn = diffusion.p_sample_loop_progressive
-    n_samples = 20
+    n_samples = 1
     n_frames = 1
     mms = []
     pms = []
-    mpjpe_poses = {
-        50: [],
-        75: [],
-        100: [],
-        125: [],
-        150: [],
-        175: [],
-        200: [],
-    }
     dataloader = test_dataloader
     pbar = tqdm(enumerate(dataloader), total=len(dataloader))
     counter = 0
@@ -317,7 +307,7 @@ if __name__ == '__main__':
     for k, (batch_cam, gt_3D, input_2D, action, subject, scale, bb_box, cam_ind) in pbar:
         def energy_fn(x):
             x[:, 0, :, :] = 0.0
-            x[0, ..., 0] = x[0, ..., 0] - center[0, 0, ...]
+            x[..., 0] = x[..., 0] - center[:, 0, ...]
             x_2D_projected = camera.proj2D(x[..., 0])
             # for i in range(n_frames):
                 # x[0, ..., i] = x[0, ..., i] - center[0, i, ...]
@@ -325,7 +315,8 @@ if __name__ == '__main__':
             #     [camera.proj2D(x[..., i]) for i in range(n_frames)],
             #     dim=-1
             # )
-            energy = torch.nn.functional.mse_loss(x_2D_projected, input_2D[..., 0])
+
+            energy = ((x_2D_projected - input_2D[..., 0])**2).mean(-1).mean(-1)
             return {'train': energy}
 
         cam_dict = dataset.cameras()[subject[0]][cam_ind.item()]
@@ -364,68 +355,64 @@ if __name__ == '__main__':
         #     gt_3D[0, ..., i] = gt_3D[0, ..., i] + center[0, i, ...]
         gt_3D[..., [1, 2], :] = -gt_3D[..., [2, 1], :]
 
-        for es in energy_scale:
-            samples_2D = []
-            samples_3D = []
-            ms = []
-            for i in range(n_samples):
-                out = sample_fn(
-                    model,
-                    gt_3D.shape,
-                    clip_denoised=False,
-                    model_kwargs={"y": {"uncond": True}},
-                    skip_timesteps=0,  # 0 is the default value - i.e. don't skip any step
-                    init_image=None,
-                    progress=False,
-                    energy_fn=energy_fn,
-                    energy_scale=es,
-                    # when experimenting guidance_scale we want to nutrileze the effect of noise on generation
-                )
-                *_, sample = out # get the last element of the generator (the real pose)
-                sample["sample"][0, ..., 0] = sample["sample"][0, ..., 0] - center[0, 0, ...]
-                sample_2D_proj = camera.proj2D(sample["sample"][..., 0])
-                # for i in range(n_frames):
-                #     sample["sample"][0, ..., i] = sample["sample"][0, ..., i] - center[0, i, ...]
-                # sample_2d_proj = torch.stack(
-                #     [camera.proj2D(sample["sample"][..., i]) for i in range(n_frames)],
-                #     dim=-1
-                # )
-                samples_2D.append(sample_2D_proj)
-                sample["sample"][0, ..., 0] = sample["sample"][0, ..., 0] + center[0, 0, ...]
-                # for i in range(sample["sample"].shape[-1]):
-                #     sample["sample"][0, ..., i] = sample["sample"][0, ..., i] + center[0, i, ...]
-                sample["sample"][..., [1, 2], :] = -sample["sample"][..., [2, 1], :]
-                samples_3D.append(sample["sample"])
+        samples_2D = []
+        samples_3D = []
+        ms = []
 
-            # metrics
-            # first mean over kps, then minimum over samples and then mean over all poses
-                sample["sample"] = sample["sample"].permute(0, 3, 1, 2)
-                gt_3D = gt_3D.permute(0, 3, 1, 2)
-                m = mpjpe(gt_3D * 1000, sample["sample"] * 1000, dim=2)
-                ms.append(m.min().cpu())
-                gt_3D = gt_3D.permute(0, 2, 3, 1)
-                # pm = pa_mpjpe(gt_3D[0, ...] * 1000,
-                #               sample["sample"][0, ...] * 1000,
-                #               dim=0)
-                #     pms.append(pm.min().cpu())
-            plot_2D(
-                gt_3D_projected,
-                input_2D,
-                samples_2D,
-                f"2{k:02}: 2D {action[0]} {n_frames} frames {n_samples} samples {es:03} energy scale",
-                n_frames,
-                alpha=0.2
-            )
-            plot_3D(
-                gt_3D,
-                samples_3D,
-                f"2{k:02}: 3D {action[0]} {n_frames} frames {n_samples} samples {es:03} energy scale",
-                n_frames,
-                alpha=0.2
-            )
-            mpjpe_poses[es].append(min(ms).item())
-        if counter == 20:
-            break
-        counter +=1
-    mean_mpjpe = {k: np.mean(np.array(v)) for k, v in mpjpe_poses.items()}
-    print(mean_mpjpe)
+        out = sample_fn(
+            model,
+            (200, 17, 3, 1),
+            clip_denoised=False,
+            model_kwargs={"y": {"uncond": True}},
+            skip_timesteps=0,  # 0 is the default value - i.e. don't skip any step
+            init_image=None,
+            progress=False,
+            energy_fn=energy_fn,
+            energy_scale=100,
+            # when experimenting guidance_scale we want to nutrileze the effect of noise on generation
+        )
+        *_, sample = out # get the last element of the generator (the real pose)
+
+        sample["sample"][..., 0] = sample["sample"][..., 0] - center[:, 0, ...]
+        sample_2D_proj = camera.proj2D(sample["sample"][..., 0])
+        # for i in range(n_frames):
+        #     sample["sample"][0, ..., i] = sample["sample"][0, ..., i] - center[0, i, ...]
+        # sample_2d_proj = torch.stack(
+        #     [camera.proj2D(sample["sample"][..., i]) for i in range(n_frames)],
+        #     dim=-1
+        # )
+        samples_2D.append(sample_2D_proj)
+        sample["sample"][..., 0] = sample["sample"][..., 0] + center[:, 0, ...]
+        # for i in range(sample["sample"].shape[-1]):
+        #     sample["sample"][0, ..., i] = sample["sample"][0, ..., i] + center[0, i, ...]
+        sample["sample"][..., [1, 2], :] = -sample["sample"][..., [2, 1], :]
+        samples_3D.append(sample["sample"])
+
+        # metrics
+        # first mean over kps, then minimum over samples and then mean over all poses
+        sample["sample"] = sample["sample"].permute(0, 3, 1, 2)
+        gt_3D = gt_3D.permute(0, 3, 1, 2)
+        m = mpjpe(gt_3D * 1000, sample["sample"] * 1000, dim=2)
+        mms.append(m.min().cpu())
+        gt_3D = gt_3D.permute(0, 2, 3, 1)
+
+        pbar.set_description(f'{np.mean(mms):.2f}')
+        # pm = pa_mpjpe(gt_3D[0, ...] * 1000,
+        #               sample["sample"][0, ...] * 1000,
+        #               dim=0)
+        #     pms.append(pm.min().cpu())
+        # plot_2D(
+        #     gt_3D_projected,
+        #     input_2D,
+        #     samples_2D,
+        #     f"2{k:02}: 2D {action[0]} {n_frames} frames {n_samples} samples energy scale",
+        #     n_frames,
+        #     alpha=0.05
+        # )
+        # plot_3D(
+        #     gt_3D,
+        #     samples_3D,
+        #     f"2{k:02}: 3D {action[0]} {n_frames} frames {n_samples} samples energy scale",
+        #     n_frames,
+        #     alpha=0.05
+        # )

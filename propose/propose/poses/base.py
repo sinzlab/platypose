@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch_geometric.data import HeteroData
+# from torch_geometric.data import HeteroData
 
 from ..cameras import Camera
 
@@ -257,8 +257,8 @@ class BasePose(ABC):
 
         return data
 
-    def conditional_graph(self, context: "BasePose") -> HeteroData:
-        return HeteroData(self._construct_conditional_graph_dict(context))
+    # def conditional_graph(self, context: "BasePose") -> HeteroData:
+    #     return HeteroData(self._construct_conditional_graph_dict(context))
 
 
 class YamlPose(BasePose):

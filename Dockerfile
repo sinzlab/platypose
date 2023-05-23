@@ -1,4 +1,4 @@
-FROM sinzlab/pytorch:v3.9-torch1.9.0-cuda11.1-dj0.12.7
+FROM sinzlab/pytorch:v3.9-torch1.13.1-cuda11.7.0-dj0.12.9
 
 # ADD .git to image to allow for commit hash retrieval
 ADD . /src

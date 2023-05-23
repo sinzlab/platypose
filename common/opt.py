@@ -24,7 +24,7 @@ class opts:
         self.parser.add_argument("--crop_uv", type=int, default=0)
         self.parser.add_argument("--root_path", type=str, default="dataset/")
         self.parser.add_argument("-a", "--actions", default="*", type=str)
-        self.parser.add_argument("--downsample", default=1, type=int)
+        self.parser.add_argument("--downsample", default=10, type=int)
         self.parser.add_argument("--subset", default=1, type=float)
         self.parser.add_argument("-s", "--stride", default=1, type=int)
         self.parser.add_argument("--gpu", default="0", type=str, help="")
