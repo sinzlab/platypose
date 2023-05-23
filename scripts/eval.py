@@ -257,6 +257,8 @@ def plot_3D(gt_3D, samples, name, n_frames, alpha=0.1):
 
 
 if __name__ == "__main__":
+    wandb.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
+
     print("Loading options...")
     opt.manualSeed = 1
     random.seed(opt.manualSeed)
@@ -311,13 +313,22 @@ if __name__ == "__main__":
     sampling_model.eval()  # disable random masking
 
     sample_fn = diffusion.p_sample_loop_progressive
-    n_samples = 1
+    n_samples = 200
+    energy_scale = 100
     n_frames = 1
     mms = []
     pms = []
     dataloader = test_dataloader
     pbar = tqdm(enumerate(dataloader), total=len(dataloader))
     counter = 0
+
+    wandb.config.update({
+        "n_samples": n_samples,
+        "energy_scale": energy_scale,
+        "n_frames": n_frames,
+        "keypoints": opt.keypoints,
+        "seed": opt.manualSeed,
+    })
 
     for k, (
         batch_cam,
@@ -386,14 +397,14 @@ if __name__ == "__main__":
 
         out = sample_fn(
             model,
-            (200, 17, 3, 1),
+            (n_samples, 17, 3, 1),
             clip_denoised=False,
             model_kwargs={"y": {"uncond": True}},
             skip_timesteps=0,  # 0 is the default value - i.e. don't skip any step
             init_image=None,
             progress=False,
             energy_fn=energy_fn,
-            energy_scale=100,
+            energy_scale=energy_scale,
             # when experimenting guidance_scale we want to nutrileze the effect of noise on generation
         )
         *_, sample = out  # get the last element of the generator (the real pose)
@@ -422,6 +433,8 @@ if __name__ == "__main__":
         gt_3D = gt_3D.permute(0, 2, 3, 1)
 
         pbar.set_description(f"{np.mean(mms):.2f}")
+
+        wandb.log({"running_avg_mpjpe": np.mean(mms), "mpjpe": m.min().cpu(), "action": action[0]})
         # pm = pa_mpjpe(gt_3D[0, ...] * 1000,
         #               sample["sample"][0, ...] * 1000,
         #               dim=0)
