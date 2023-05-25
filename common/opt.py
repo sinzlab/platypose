@@ -16,7 +16,7 @@ class opts:
         self.parser.add_argument("--d_hid", default=1024, type=int)
         self.parser.add_argument("--dataset", type=str, default="h36m")
         self.parser.add_argument(
-            "-k", "--keypoints", default="cpn_ft_h36m_dbb", type=str
+            "-k", "--keypoints", default="gt", type=str
         )  # cpn_ft_h36m_dbb or gt
         self.parser.add_argument("--data_augmentation", type=bool, default=True)
         self.parser.add_argument("--reverse_augmentation", type=bool, default=False)
@@ -42,7 +42,7 @@ class opts:
         self.parser.add_argument("--large_decay_epoch", type=int, default=5)
         self.parser.add_argument("--workers", type=int, default=8)
         self.parser.add_argument("-lrd", "--lr_decay", default=0.95, type=float)
-        self.parser.add_argument("--frames", type=int, default=1)
+        self.parser.add_argument("--frames", type=int, default=30)
         self.parser.add_argument("--pad", type=int, default=175)
         self.parser.add_argument("--checkpoint", type=str, default="")
         self.parser.add_argument("--previous_dir", type=str, default="")

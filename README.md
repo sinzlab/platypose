@@ -1,5 +1,9 @@
 # 🐣 CHICK: Energy guided diffusion for lifting human poses from 2D to 3D
 
+<p align="center">
+  <img width="100%" src="./assets/logo.png" alt="Hive Logo">
+</p>
+
 This repository is derived from [EGG diffusion](https://github.com/sinzlab/energy-guided-diffusion), hence the name CHICK.
 
 ### Abstract

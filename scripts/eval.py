@@ -255,9 +255,24 @@ def plot_3D(gt_3D, samples, name, n_frames, alpha=0.1):
                     aux.plot(ax, plot_type="none", c="tab:blue")
                 g.add(fig)
 
+from unittest.mock import MagicMock
+
+env = 'dev'
+platform = {
+    'dev': MagicMock(),
+    'wandb': wandb
+}[env]
+n_samples = 10
+energy_scale = 100
+n_frames = max([1, opt.frames - 1])
+
+model_path = {
+    1: "./old_model.pt",
+    29: "./model_30_frames.pt",
+}[n_frames]
 
 if __name__ == "__main__":
-    wandb.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
+    platform.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
 
     print("Loading options...")
     opt.manualSeed = 1
@@ -285,15 +300,15 @@ if __name__ == "__main__":
     train_platform.report_args(args, name="Args")
 
     model, diffusion = create_model_and_diffusion(args)
-    state_dict = torch.load("./old_model.pt", map_location="cpu")
-    # state_dict = torch.load('./output/model000633659_30.pt', map_location='cpu')
-    # wandb.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
-    # artifact = wandb.Artifact(
-    #     name="MDM_H36m_30_frames_50_steps",
+    # state_dict = torch.load('./output/model000633659.pt', map_location='cpu')
+    state_dict = torch.load(model_path, map_location="cpu")
+    platform.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
+    # artifact = platform.Artifact(
+    #     name="MDM_H36m_1_frame_50_steps",
     #     type="model",
     # )
-    # artifact.add_file("./output/model000633659_30.pt", name="model.pt")
-    # wandb.run.log_artifact(artifact)
+    # artifact.add_file("./old_model.pt", name="model.pt")
+    # platform.run.log_artifact(artifact)
     model.load_state_dict(state_dict, strict=False)
     model.eval()
     device = torch.device("cpu")
@@ -313,9 +328,6 @@ if __name__ == "__main__":
     sampling_model.eval()  # disable random masking
 
     sample_fn = diffusion.p_sample_loop_progressive
-    n_samples = 200
-    energy_scale = 100
-    n_frames = 1
     mms = []
     dataloader = test_dataloader
     pbar = tqdm(enumerate(dataloader), total=len(dataloader))
@@ -324,7 +336,7 @@ if __name__ == "__main__":
     quantile_counts = torch.zeros((len(quantiles), 17))
     q_val = []
 
-    wandb.config.update({
+    platform.config.update({
         "n_samples": n_samples,
         "energy_scale": energy_scale,
         "n_frames": n_frames,
@@ -342,10 +354,16 @@ if __name__ == "__main__":
         bb_box,
         cam_ind,
     ) in pbar:
+        print(gt_3D.shape)
+        input_2D = gt_3D[..., [0, 1]]
         def energy_fn(x):
             x[:, 0, :, :] = 0.0
-            x[..., 0] = x[..., 0] - center[:, 0, ...]
-            x_2D_projected = camera.proj2D(x[..., 0])
+            # x[..., 0] = x[..., 0] - center[:, 0, ...]
+            x = x - center.unsqueeze(0).permute(0, 1, 3, 2)
+            x = x.permute(0, 3, 1, 2)
+            # x_2D_projected = camera.proj2D(x[..., 0])
+            # x_2D_projected = camera.proj2D(x)
+            x_2D_projected = x[..., [0, 1]] #camera.proj2D(x.permute(0, 3, 1, 2))
             # for i in range(n_frames):
             # x[0, ..., i] = x[0, ..., i] - center[0, i, ...]
             # x_2D_projected = torch.stack(
@@ -353,7 +371,12 @@ if __name__ == "__main__":
             #     dim=-1
             # )
 
-            energy = ((x_2D_projected - input_2D[..., 0]) ** 2).mean(-1).mean(-1)
+            energy = ((x_2D_projected - input_2D.permute(0, 3, 1, 2)) ** 2).mean(-1).mean(-1).sum(-1)
+            # print(energy.mean())
+            # energy = ((x_2D_projected.reshape(-1, 17 * 2) - input_2D[..., 0].reshape(-1, 17 * 2)) ** 2).max(-1).values
+
+            # print(energy.mean())
+
             return {"train": energy}
 
         cam_dict = dataset.cameras()[subject[0]][cam_ind.item()]
@@ -373,17 +396,23 @@ if __name__ == "__main__":
 
         input_2D = input_2D.to(device)
         gt_3D = gt_3D.to(device)
+
         input_2D = input_2D - 2 * input_2D[:, :, 0, :].unsqueeze(2)  # centralize
         input_2D *= -1.0
+
         center = gt_3D[:, :, 0].clone()  # [0, 1]
         gt_3D[:, :, 0] = 0  # "centralizes" the hip (first three coordinates) in 0
-        gt_3D[0, 0, ...] = gt_3D[0, 0, ...] - center[0, 0, ...]
+        # print(gt_3D.shape, center.shape)/
+        gt_3D = gt_3D - center.unsqueeze(-2)
         # for i in range(n_frames):
         #     gt_3D[0, i, ...] = gt_3D[0, i, ...] - center[0, i, ...]
+        # print(gt_3D.shape, center.shape)
         gt_3D = gt_3D.permute(0, 2, 3, 1)  # does not make difference for sampling
         input_2D = input_2D.permute(0, 2, 3, 1)
-        gt_3D_projected = camera.proj2D(gt_3D[..., 0])
-        gt_3D[0, ..., 0] = gt_3D[0, ..., 0] + center[0, 0, ...]
+
+
+        gt_3D_projected = gt_3D.permute(0, 3, 1, 2)[..., [0, 1]] #camera.proj2D(gt_3D.permute(0, 3, 1, 2))
+        gt_3D = gt_3D + center.unsqueeze(0).permute(0, 1, 3, 2)
         # gt_3D_projected = torch.stack(
         #     [camera.proj2D(gt_3D[..., i]) for i in range(n_frames)],
         #     dim=-1
@@ -398,7 +427,7 @@ if __name__ == "__main__":
 
         out = sample_fn(
             model,
-            (n_samples, 17, 3, 1),
+            (n_samples, 17, 3, gt_3D.shape[-1]),
             clip_denoised=False,
             model_kwargs={"y": {"uncond": True}},
             skip_timesteps=0,  # 0 is the default value - i.e. don't skip any step
@@ -408,67 +437,74 @@ if __name__ == "__main__":
             energy_scale=energy_scale,
             # when experimenting guidance_scale we want to nutrileze the effect of noise on generation
         )
-        *_, sample = out  # get the last element of the generator (the real pose)
+        *_, _sample = out  # get the last element of the generator (the real pose)
+        sample = _sample["sample"]
 
-        sample["sample"][..., 0] = sample["sample"][..., 0] - center[:, 0, ...]
-        sample_2D_proj = camera.proj2D(sample["sample"][..., 0])
+        # sample[..., 0] = sample[..., 0] - center[:, 0, ...]
+        sample = sample - center.unsqueeze(0).permute(0, 1, 3, 2)
+        # sample_2D_proj = camera.proj2D(sample.permute(0, 3, 1, 2))
+        sample_2D_proj = sample.permute(0, 3, 1, 2)[..., [0, 1]]
+        sample_2D_proj = sample_2D_proj.permute(0, 2, 3, 1)
         # for i in range(n_frames):
-        #     sample["sample"][0, ..., i] = sample["sample"][0, ..., i] - center[0, i, ...]
+        #     sample[0, ..., i] = sample[0, ..., i] - center[0, i, ...]
         # sample_2d_proj = torch.stack(
-        #     [camera.proj2D(sample["sample"][..., i]) for i in range(n_frames)],
+        #     [camera.proj2D(sample[..., i]) for i in range(n_frames)],
         #     dim=-1
         # )
         samples_2D.append(sample_2D_proj)
-        sample["sample"][..., 0] = sample["sample"][..., 0] + center[:, 0, ...]
-        # for i in range(sample["sample"].shape[-1]):
-        #     sample["sample"][0, ..., i] = sample["sample"][0, ..., i] + center[0, i, ...]
-        sample["sample"][..., [1, 2], :] = -sample["sample"][..., [2, 1], :]
-        samples_3D.append(sample["sample"])
+        sample = sample + center.unsqueeze(0).permute(0, 1, 3, 2)
+        # sample = sample.permute(0, 2, 3, 1)
+        # for i in range(sample.shape[-1]):
+        #     sample[0, ..., i] = sample[0, ..., i] + center[0, i, ...]
+        sample[..., [1, 2], :] = -sample[..., [2, 1], :]
+        samples_3D.append(sample)
+
+        # metrics
+        # first mean over kps, then minimum over samples and then mean over all poses
+        # sample = sample.permute(0, 3, 1, 2)
+        # gt_3D = gt_3D.permute(0, 3, 1, 2)
 
         ##### mpjpe
-        sample["sample"] = sample["sample"].permute(0, 3, 1, 2)
+        sample = sample.permute(0, 3, 1, 2)
         gt_3D = gt_3D.permute(0, 3, 1, 2)
-        m = mpjpe(gt_3D * 1000, sample["sample"] * 1000, dim=2)
+
+        m = mpjpe(gt_3D * 1000, sample * 1000, mean=False).mean(-1).mean(-1)
         mms.append(m.min().cpu())
         gt_3D = gt_3D.permute(0, 2, 1, 3)
-        sample["sample"] = sample["sample"].permute(1, 2, 0, 3)
+        sample = sample.permute(1, 2, 0, 3)
 
         ##### calibration
-        sample_mean = (
-            sample["sample"].median(-2).values[..., None, :]
-        )
-        errors = ((sample_mean / 0.0036 - sample["sample"] / 0.0036) ** 2).sum(-1) ** 0.5
-        true_error = (((sample_mean / 0.0036 - gt_3D / 0.0036) ** 2).sum(-1) ** 0.5).cpu().numpy()
-        q_vals = np.quantile(errors.cpu().numpy(), quantiles, 2).squeeze(1)
-        q_val.append(q_vals)
-
-        v = (q_vals > true_error.squeeze()).astype(int)
-
-        if not np.isnan(v).any():
-            total += 1
-            quantile_counts += v
-
-        _quantile_freqs = quantile_counts / total
-
-        # _calibration_score = np.median(_quantile_freqs, axis=1).sum() * 0.05
-        _calibration_score = np.abs(
-            np.median(_quantile_freqs, axis=1) - quantiles
-        ).mean()
-
-        pbar.set_description(f"Calibration score: {_calibration_score:.4f}\n")
-        # pbar.set_description(f"{np.mean(mms):.2f}")
+        # sample_mean = (
+        #     sample.median(-2).values[..., None, :]
+        # )
+        # errors = ((sample_mean / 0.0036 - sample / 0.0036) ** 2).sum(-1) ** 0.5
+        # true_error = (((sample_mean / 0.0036 - gt_3D / 0.0036) ** 2).sum(-1) ** 0.5).cpu().numpy()
+        # q_vals = np.quantile(errors.cpu().numpy(), quantiles, 2).squeeze(1)
+        # q_val.append(q_vals)
+        #
+        # v = (q_vals > true_error.squeeze()).astype(int)
+        #
+        # if not np.isnan(v).any():
+        #     total += 1
+        #     quantile_counts += v
+        #
+        # _quantile_freqs = quantile_counts / total
+        #
+        # # _calibration_score = np.median(_quantile_freqs, axis=1).sum() * 0.05
+        # _calibration_score = np.abs(
+        #     np.median(_quantile_freqs, axis=1) - quantiles
+        # ).mean()
         gt_3D = gt_3D.permute(0, 2, 3, 1)
 
-        wandb.log(
-            {"running_avg_mpjpe": np.mean(mms),
-             "mpjpe": m.min().cpu(),
-             "calibration_score": _calibration_score,
-             "action": action[0]}
-        )
+        pbar.set_description(f"{mms[-1]:.2f} | {np.mean(mms):.2f}")
+
+        platform.log({"running_avg_mpjpe": np.mean(mms), "mpjpe": m.min().cpu(), "action": action[0]})
         # pm = pa_mpjpe(gt_3D[0, ...] * 1000,
-        #               sample["sample"][0, ...] * 1000,
+        #               sample[0, ...] * 1000,
         #               dim=0)
         #     pms.append(pm.min().cpu())
+
+        gt_3D_projected = gt_3D_projected.permute(0, 2, 3, 1)
         # plot_2D(
         #     gt_3D_projected,
         #     input_2D,
@@ -482,9 +518,5 @@ if __name__ == "__main__":
         #     samples_3D,
         #     f"2{k:02}: 3D {action[0]} {n_frames} frames {n_samples} samples energy scale",
         #     n_frames,
-        #     alpha=0.05
+        #     alpha=0.1
         # )
-
-    quantile_freqs = quantile_counts / total
-    calibration_score = np.abs(np.median(quantile_freqs, axis=1) - quantiles).mean()
-    print(calibration_score)
