@@ -40,6 +40,7 @@ from propose.propose.cameras.Camera import Camera
 from propose.propose.evaluation.mpjpe import mpjpe, pa_mpjpe
 from propose.propose.poses.human36m import Human36mPose
 
+
 opt = opts().parse()
 args = train_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = opt.gpu
@@ -47,7 +48,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = opt.gpu
 
 # 49.16 with skip on 1000 samples
 # 48.42 with skip on 1000 samples
-
 
 def calibration(n_sample):
     quantiles = torch.arange(0, 1.05, 0.05)
@@ -285,14 +285,14 @@ if __name__ == "__main__":
     train_platform.report_args(args, name="Args")
 
     model, diffusion = create_model_and_diffusion(args)
-    # state_dict = torch.load('./output/model000633659.pt', map_location='cpu')
     state_dict = torch.load("./old_model.pt", map_location="cpu")
+    # state_dict = torch.load('./output/model000633659_30.pt', map_location='cpu')
     # wandb.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
     # artifact = wandb.Artifact(
-    #     name="MDM_H36m_1_frame_50_steps",
+    #     name="MDM_H36m_30_frames_50_steps",
     #     type="model",
     # )
-    # artifact.add_file("./old_model.pt", name="model.pt")
+    # artifact.add_file("./output/model000633659_30.pt", name="model.pt")
     # wandb.run.log_artifact(artifact)
     model.load_state_dict(state_dict, strict=False)
     model.eval()
@@ -317,10 +317,12 @@ if __name__ == "__main__":
     energy_scale = 100
     n_frames = 1
     mms = []
-    pms = []
     dataloader = test_dataloader
     pbar = tqdm(enumerate(dataloader), total=len(dataloader))
-    counter = 0
+    total = 0
+    quantiles = np.arange(0, 1.05, 0.05)
+    quantile_counts = torch.zeros((len(quantiles), 17))
+    q_val = []
 
     wandb.config.update({
         "n_samples": n_samples,
@@ -340,7 +342,6 @@ if __name__ == "__main__":
         bb_box,
         cam_ind,
     ) in pbar:
-
         def energy_fn(x):
             x[:, 0, :, :] = 0.0
             x[..., 0] = x[..., 0] - center[:, 0, ...]
@@ -424,17 +425,46 @@ if __name__ == "__main__":
         sample["sample"][..., [1, 2], :] = -sample["sample"][..., [2, 1], :]
         samples_3D.append(sample["sample"])
 
-        # metrics
-        # first mean over kps, then minimum over samples and then mean over all poses
+        ##### mpjpe
         sample["sample"] = sample["sample"].permute(0, 3, 1, 2)
         gt_3D = gt_3D.permute(0, 3, 1, 2)
         m = mpjpe(gt_3D * 1000, sample["sample"] * 1000, dim=2)
         mms.append(m.min().cpu())
+        gt_3D = gt_3D.permute(0, 2, 1, 3)
+        sample["sample"] = sample["sample"].permute(1, 2, 0, 3)
+
+        ##### calibration
+        sample_mean = (
+            sample["sample"].median(-2).values[..., None, :]
+        )
+        errors = ((sample_mean / 0.0036 - sample["sample"] / 0.0036) ** 2).sum(-1) ** 0.5
+        true_error = (((sample_mean / 0.0036 - gt_3D / 0.0036) ** 2).sum(-1) ** 0.5).cpu().numpy()
+        q_vals = np.quantile(errors.cpu().numpy(), quantiles, 2).squeeze(1)
+        q_val.append(q_vals)
+
+        v = (q_vals > true_error.squeeze()).astype(int)
+
+        if not np.isnan(v).any():
+            total += 1
+            quantile_counts += v
+
+        _quantile_freqs = quantile_counts / total
+
+        # _calibration_score = np.median(_quantile_freqs, axis=1).sum() * 0.05
+        _calibration_score = np.abs(
+            np.median(_quantile_freqs, axis=1) - quantiles
+        ).mean()
+
+        pbar.set_description(f"Calibration score: {_calibration_score:.4f}\n")
+        # pbar.set_description(f"{np.mean(mms):.2f}")
         gt_3D = gt_3D.permute(0, 2, 3, 1)
 
-        pbar.set_description(f"{np.mean(mms):.2f}")
-
-        wandb.log({"running_avg_mpjpe": np.mean(mms), "mpjpe": m.min().cpu(), "action": action[0]})
+        wandb.log(
+            {"running_avg_mpjpe": np.mean(mms),
+             "mpjpe": m.min().cpu(),
+             "calibration_score": _calibration_score,
+             "action": action[0]}
+        )
         # pm = pa_mpjpe(gt_3D[0, ...] * 1000,
         #               sample["sample"][0, ...] * 1000,
         #               dim=0)
@@ -454,3 +484,7 @@ if __name__ == "__main__":
         #     n_frames,
         #     alpha=0.05
         # )
+
+    quantile_freqs = quantile_counts / total
+    calibration_score = np.abs(np.median(quantile_freqs, axis=1) - quantiles).mean()
+    print(calibration_score)
