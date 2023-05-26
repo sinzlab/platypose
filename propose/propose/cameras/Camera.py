@@ -83,7 +83,7 @@ class Camera(object):
             .to(self.device)
         )
 
-    def proj2D(self, points: Point3D, distort: bool = True) -> Point2D:
+    def proj2D(self, points: Point3D, distort: bool = False) -> Point2D:
         """
         Computes the projection of a 3D point onto the 2D camera space
         :param points: 3D points (x, y, z) (important to have the 3d points on the last axis)

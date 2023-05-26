@@ -42,7 +42,7 @@ class opts:
         self.parser.add_argument("--large_decay_epoch", type=int, default=5)
         self.parser.add_argument("--workers", type=int, default=8)
         self.parser.add_argument("-lrd", "--lr_decay", default=0.95, type=float)
-        self.parser.add_argument("--frames", type=int, default=30)
+        self.parser.add_argument("--frames", type=int, default=1)
         self.parser.add_argument("--pad", type=int, default=175)
         self.parser.add_argument("--checkpoint", type=str, default="")
         self.parser.add_argument("--previous_dir", type=str, default="")
