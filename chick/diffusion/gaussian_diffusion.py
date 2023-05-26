@@ -755,11 +755,11 @@ class GaussianDiffusion:
             grad_outputs = th.ones_like(energy["train"])
 
             # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
-            norm_grad = th.autograd.grad(
+            grad = th.autograd.grad(
                 outputs=energy["train"], inputs=img, grad_outputs=grad_outputs
             )[0]
             # update = (norm_grad / th.norm(norm_grad) * energy_scale)
-            update = norm_grad * energy_scale
+            update = grad * energy_scale
             out["sample"] = out["sample"] - update
             yield out
             img = out["sample"]

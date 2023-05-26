@@ -325,3 +325,8 @@ class Camera(object):
 
     def __repr__(self):
         return self.__str__()
+
+
+class DummyCamera(Camera):
+    def proj2D(self, points: Point3D, distort: bool = True) -> Point2D:
+        return points[..., [0, 1]]

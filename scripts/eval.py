@@ -36,7 +36,7 @@ from common.h36m_dataset import Human36mDataset
 from common.load_data_hm36 import Fusion
 from common.opt import opts
 from common.utils import *
-from propose.propose.cameras.Camera import Camera
+from propose.propose.cameras.Camera import Camera, DummyCamera
 from propose.propose.evaluation.mpjpe import mpjpe, pa_mpjpe
 from propose.propose.poses.human36m import Human36mPose
 
@@ -262,8 +262,8 @@ platform = {
     'dev': MagicMock(),
     'wandb': wandb
 }[env]
-n_samples = 10
-energy_scale = 100
+n_samples = 20
+energy_scale = 1000
 n_frames = max([1, opt.frames - 1])
 
 model_path = {
@@ -354,16 +354,14 @@ if __name__ == "__main__":
         bb_box,
         cam_ind,
     ) in pbar:
-        print(gt_3D.shape)
-        input_2D = gt_3D[..., [0, 1]]
-        def energy_fn(x):
-            x[:, 0, :, :] = 0.0
+        def energy_fn(x, plot=False):
+            # x[:, 0, :, :] = 0.0
             # x[..., 0] = x[..., 0] - center[:, 0, ...]
             x = x - center.unsqueeze(0).permute(0, 1, 3, 2)
             x = x.permute(0, 3, 1, 2)
             # x_2D_projected = camera.proj2D(x[..., 0])
-            # x_2D_projected = camera.proj2D(x)
-            x_2D_projected = x[..., [0, 1]] #camera.proj2D(x.permute(0, 3, 1, 2))
+            x_2D_projected = camera.proj2D(x)
+            # x_2D_projected = -x[..., [0, 1]] #camera.proj2D(x.permute(0, 3, 1, 2))
             # for i in range(n_frames):
             # x[0, ..., i] = x[0, ..., i] - center[0, i, ...]
             # x_2D_projected = torch.stack(
@@ -371,7 +369,18 @@ if __name__ == "__main__":
             #     dim=-1
             # )
 
-            energy = ((x_2D_projected - input_2D.permute(0, 3, 1, 2)) ** 2).mean(-1).mean(-1).sum(-1)
+            if plot:
+                plot_2D(
+                    input_2D,
+                    input_2D,
+                    x_2D_projected.permute(0, 2, 3, 1),
+                    f"debug",
+                    n_frames,
+                    alpha=0.05
+                )
+
+            energy = ((x_2D_projected - input_2D.permute(0, 3, 1, 2)) ** 2).mean(-1).mean(-1).mean(-1)
+
             # print(energy.mean())
             # energy = ((x_2D_projected.reshape(-1, 17 * 2) - input_2D[..., 0].reshape(-1, 17 * 2)) ** 2).max(-1).values
 
@@ -401,17 +410,22 @@ if __name__ == "__main__":
         input_2D *= -1.0
 
         center = gt_3D[:, :, 0].clone()  # [0, 1]
+        # center = torch.zeros_like(center)
+
         gt_3D[:, :, 0] = 0  # "centralizes" the hip (first three coordinates) in 0
         # print(gt_3D.shape, center.shape)/
         gt_3D = gt_3D - center.unsqueeze(-2)
         # for i in range(n_frames):
         #     gt_3D[0, i, ...] = gt_3D[0, i, ...] - center[0, i, ...]
         # print(gt_3D.shape, center.shape)
+
         gt_3D = gt_3D.permute(0, 2, 3, 1)  # does not make difference for sampling
         input_2D = input_2D.permute(0, 2, 3, 1)
 
 
-        gt_3D_projected = gt_3D.permute(0, 3, 1, 2)[..., [0, 1]] #camera.proj2D(gt_3D.permute(0, 3, 1, 2))
+        gt_3D_projected = camera.proj2D(gt_3D.permute(0, 3, 1, 2))
+        # gt_3D_projected = gt_3D.permute(0, 3, 1, 2)[..., [0, 1]]
+        # input_2D = gt_3D_projected.clone().permute(0, 2, 3, 1)
         gt_3D = gt_3D + center.unsqueeze(0).permute(0, 1, 3, 2)
         # gt_3D_projected = torch.stack(
         #     [camera.proj2D(gt_3D[..., i]) for i in range(n_frames)],
@@ -420,6 +434,10 @@ if __name__ == "__main__":
         # for i in range(n_frames):
         #     gt_3D[0, ..., i] = gt_3D[0, ..., i] + center[0, i, ...]
         gt_3D[..., [1, 2], :] = -gt_3D[..., [2, 1], :]
+
+
+        # gt_3D_projected = gt_3D.permute(0, 3, 1, 2)[..., [0, 2]]  # camera.proj2D(gt_3D.permute(0, 3, 1, 2))
+        # input_2D = gt_3D_projected.clone().permute(0, 2, 3, 1)
 
         samples_2D = []
         samples_3D = []
@@ -440,10 +458,14 @@ if __name__ == "__main__":
         *_, _sample = out  # get the last element of the generator (the real pose)
         sample = _sample["sample"]
 
+        # energy = energy_fn(_sample["sample"], plot=True)
+        # print(energy['train'].mean())
+        # exit()
+
         # sample[..., 0] = sample[..., 0] - center[:, 0, ...]
         sample = sample - center.unsqueeze(0).permute(0, 1, 3, 2)
-        # sample_2D_proj = camera.proj2D(sample.permute(0, 3, 1, 2))
-        sample_2D_proj = sample.permute(0, 3, 1, 2)[..., [0, 1]]
+        sample_2D_proj = camera.proj2D(sample.permute(0, 3, 1, 2))
+        # sample_2D_proj = sample.permute(0, 3, 1, 2)[..., [0, 1]]
         sample_2D_proj = sample_2D_proj.permute(0, 2, 3, 1)
         # for i in range(n_frames):
         #     sample[0, ..., i] = sample[0, ..., i] - center[0, i, ...]
@@ -513,10 +535,12 @@ if __name__ == "__main__":
         #     n_frames,
         #     alpha=0.05
         # )
-        # plot_3D(
-        #     gt_3D,
-        #     samples_3D,
-        #     f"2{k:02}: 3D {action[0]} {n_frames} frames {n_samples} samples energy scale",
-        #     n_frames,
-        #     alpha=0.1
-        # )
+        print(gt_3D.permute(0, 3, 2, 1).shape, sample.permute(2, 1, 3, 0).shape)
+        plot_3D(
+            gt_3D.permute(0, 3, 2, 1),
+            sample.permute(2, 1, 3, 0),
+            f"2{k:02}: 3D {action[0]} {n_frames} frames {n_samples} samples energy scale",
+            n_frames,
+            alpha=0.1
+        )
+        exit()
