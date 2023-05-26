@@ -749,21 +749,18 @@ class GaussianDiffusion:
                 model_kwargs=model_kwargs,
                 const_noise=const_noise,
             )
-            energy = energy_fn(out["pred_xstart"])
-            energy["train"] = energy["train"]
+
+            energy = energy_fn(out["sample"])
             alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, img.shape)
             grad_outputs = th.ones_like(energy["train"])
-
-            # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
-            norm_grad = th.autograd.grad(
-                outputs=energy["train"], inputs=img, grad_outputs=grad_outputs
+            grad = th.autograd.grad(
+                outputs=energy["train"], inputs=out["sample"], grad_outputs=grad_outputs
             )[0]
-            # update = (norm_grad / th.norm(norm_grad) * energy_scale)
-            update = norm_grad * energy_scale
+            update = grad * energy_scale
             out["sample"] = out["sample"] - update
+                
             yield out
             img = out["sample"]
-            # Clears out small amount of gpu memory. If not used, memory usage will accumulate and OOM will occur.
             img.detach_()
 
     def ddim_sample(

@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
     sample_fn = diffusion.p_sample_loop_progressive
     n_samples = 200
-    energy_scale = 100
+    energy_scale = 30
     n_frames = 1
     mms = []
     dataloader = test_dataloader
@@ -455,15 +455,16 @@ if __name__ == "__main__":
             np.median(_quantile_freqs, axis=1) - quantiles
         ).mean()
 
-        pbar.set_description(f"Calibration score: {_calibration_score:.4f}\n")
-        # pbar.set_description(f"{np.mean(mms):.2f}")
-        gt_3D = gt_3D.permute(0, 2, 3, 1)
+        pbar.set_description(
+            f"{mms[-1]:.2f} | {np.mean(mms):.2f} | {_calibration_score:.2f}"
+        )
 
         wandb.log(
-            {"running_avg_mpjpe": np.mean(mms),
-             "mpjpe": m.min().cpu(),
-             "calibration_score": _calibration_score,
-             "action": action[0]}
+            {
+                "running_avg_mpjpe": np.mean(mms),
+                "mpjpe": m.min().cpu(),
+                "action": action[0],
+            }
         )
         # pm = pa_mpjpe(gt_3D[0, ...] * 1000,
         #               sample["sample"][0, ...] * 1000,
