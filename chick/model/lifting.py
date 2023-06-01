@@ -5,8 +5,7 @@ import torch.nn.functional as F
 
 # from model.rotation2xyz import Rotation2xyz
 from chick.model.encoder import SkeletonEncoder
-from chick.model.transformer import (MartinezTransformerEncoderLayer,
-                                     TransformerUNet)
+from chick.model.transformer import MartinezTransformerEncoderLayer, TransformerUNet
 
 
 class MDM(nn.Module):

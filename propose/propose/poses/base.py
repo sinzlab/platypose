@@ -10,8 +10,6 @@ from .utils import yaml_pose_loader
 # from torch_geometric.data import HeteroData
 
 
-
-
 class BasePose(ABC):
     """
     Base class for poses. Provides and structure for storing pose information and plotting poses.

@@ -42,8 +42,7 @@ class CVAE(CAE):
 
     @classmethod
     def build(cls):
-        from chick.model.transformer import (Decoder_TRANSFORMER,
-                                             Encoder_TRANSFORMER)
+        from chick.model.transformer import Decoder_TRANSFORMER, Encoder_TRANSFORMER
 
         encoder = Encoder_TRANSFORMER()
         decoder = Decoder_TRANSFORMER()

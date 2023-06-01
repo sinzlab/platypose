@@ -83,13 +83,34 @@ class Camera(object):
             .to(self.device)
         )
 
-    def proj2D(self, points: Point3D, distort: bool = False) -> Point2D:
+    def proj2D(
+        self, points: Point3D, distort: bool = True, martinez: bool = False
+    ) -> Point2D:
         """
         Computes the projection of a 3D point onto the 2D camera space
         :param points: 3D points (x, y, z) (important to have the 3d points on the last axis)
         :param distort: bool [default = True] Determines whether camera distortion should be applied to the points.
         :return: Projected 2D points (x, y)
         """
+        if martinez:
+            fx, fy, cx, cy, skew = self._unpack_intrinsic_matrix()
+
+            points = points.squeeze(1)
+            return torch.stack(
+                [
+                    self._proj2D_martinez(
+                        pts,
+                        self.rotation_matrix,
+                        self.translation_vector.T,
+                        torch.tensor([[fx], [fy]]),
+                        torch.tensor([[cx], [cy]]),
+                        self.radial_distortion.T,
+                        self.tangential_distortion.T,
+                    )
+                    for pts in points
+                ]
+            ).unsqueeze(1)
+
         assert points.shape[-1] == 3
 
         camera_matrix = self.camera_matrix()
@@ -107,6 +128,64 @@ class Camera(object):
             projected_points = self.distort(projected_points)
 
         return projected_points
+
+    def _proj2D_martinez(self, P, R, T, f, c, k, p):
+        """
+        Args
+        P: Nx3 points in world coordinates
+        R: 3x3 Camera rotation matrix
+        T: 3x1 Camera translation parameters
+        f: 2x1 (scalar) Camera focal length
+        c: 2x1 Camera center
+        k: 3x1 Camera radial distortion coefficients
+        p: 2x1 Camera tangential distortion coefficients
+        Returns
+        Proj: Nx2 points in pixel space
+        D: 1xN depth of each point in camera space
+        radial: 1xN radial distortion per point
+        tan: 1xN tangential distortion per point
+        r2: 1xN squared radius of the projected points before distortion
+        """
+
+        # P is a matrix of 3-dimensional points
+        assert len(P.shape) == 2
+        assert P.shape[1] == 3
+
+        # check shapes
+        assert R.shape == (3, 3), "R must be a 3x3 matrix"
+        assert T.shape == (3, 1), f"T must be a 3x1 vector, got {T.shape}"
+        assert f.shape == (2, 1), f"f must be a 2x1 vector, got {f.shape}"
+        assert c.shape == (2, 1), f"c must be a 2x1 vector, got {c.shape}"
+        assert k.shape == (3, 1), f"k must be a 3x1 vector, got {k.shape}"
+        assert p.shape == (2, 1), f"p must be a 2x1 vector, got {p.shape}"
+
+        # cast all to cuda
+        R = R.to(self.device)
+        T = T.to(self.device)
+        f = f.to(self.device)
+        c = c.to(self.device)
+        k = k.to(self.device)
+        p = p.to(self.device)
+        P = P.to(self.device)
+
+        N = P.shape[0]
+        X = R @ (P.T - T)  # rotate and translate
+        XX = X[:2, :] / X[2, :]  # 2x16
+        r2 = XX[0, :] ** 2 + XX[1, :] ** 2  # 16,
+
+        a = torch.tile(k, (1, N))
+        b = torch.stack([r2, r2**2, r2**3]).to(self.device)  # 3x16
+        radial = 1 + torch.einsum("ij,ij->j", a, b)  # 16,
+        tan = p[0] * XX[1, :] + p[1] * XX[0, :]  # 16,
+
+        tm = torch.outer(torch.stack([p[1], p[0]]).reshape(-1), r2)  # 2x16
+
+        XXX = XX * torch.tile(radial + tan, (2, 1)) + tm  # 2x16
+
+        Proj = (f * XXX) + c  # 2x16
+        Proj = Proj.T
+
+        return Proj
 
     def distort(self, points: Point2D) -> Point2D:
         """

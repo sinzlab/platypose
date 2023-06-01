@@ -12,8 +12,11 @@ from tqdm import tqdm
 
 from chick.diffusion import logger
 from chick.diffusion.fp16_util import MixedPrecisionTrainer
-from chick.diffusion.resample import (LossAwareSampler, UniformSampler,
-                                      create_named_schedule_sampler)
+from chick.diffusion.resample import (
+    LossAwareSampler,
+    UniformSampler,
+    create_named_schedule_sampler,
+)
 from chick.model.cfg_sampler import ClassifierFreeSampleModel
 from chick.utils import dist_util
 

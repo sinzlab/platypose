@@ -1,5 +1,6 @@
 import codecs as cs
 import random
+
 # import tensorflow as tf
 from collections import OrderedDict
 from os.path import join as pjoin
