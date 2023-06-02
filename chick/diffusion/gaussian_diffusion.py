@@ -746,33 +746,33 @@ class GaussianDiffusion:
                 model_kwargs=model_kwargs,
                 const_noise=const_noise,
             )
-            # energy = energy_fn(out["pred_xstart"])
-            #
-            # inpaint = True
-            # if inpaint:
-            #     # idx = 6 #leg
-            #     # idx = 13
-            #     # skip = out["sample"][..., idx, :, :].clone()
-            #     out["sample"][..., [0, 1], :] = energy["input_2D"]
-            #     # out["sample"][..., idx, :, :] = skip
-            # else:
-            #     for _ in range(1):
-            #         energy = energy_fn(out["sample"])
-            #         # alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, img.shape)
-            #         grad_outputs = th.ones_like(energy["train"])
-            #
-            #         if torch.isnan(energy["train"]).any():
-            #             break
-            #
-            #         # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
-            #         grad = th.autograd.grad(
-            #             outputs=energy["train"],
-            #             inputs=out["sample"],
-            #             grad_outputs=grad_outputs,
-            #         )[0]
-            #         # update = (norm_grad / th.norm(norm_grad) * energy_scale)
-            #         update = grad * energy_scale
-            #         out["sample"] = out["sample"] - update
+            energy = energy_fn(out["pred_xstart"])
+
+            inpaint = True
+            if inpaint:
+                # idx = 6 #leg
+                # idx = 13
+                # skip = out["sample"][..., idx, :, :].clone()
+                out["sample"][..., [0, 1], :] = energy["input_2D"]
+                # out["sample"][..., idx, :, :] = skip
+            else:
+                for _ in range(1):
+                    energy = energy_fn(out["sample"])
+                    # alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, img.shape)
+                    grad_outputs = th.ones_like(energy["train"])
+
+                    if torch.isnan(energy["train"]).any():
+                        break
+
+                    # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
+                    grad = th.autograd.grad(
+                        outputs=energy["train"],
+                        inputs=out["sample"],
+                        grad_outputs=grad_outputs,
+                    )[0]
+                    # update = (norm_grad / th.norm(norm_grad) * energy_scale)
+                    update = grad * energy_scale
+                    out["sample"] = out["sample"] - update
 
             yield out
             img = out["sample"]

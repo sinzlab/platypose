@@ -36,11 +36,9 @@ Cam = {
 }[cfg.experiment.projection]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-print(cfg)
-
-
 if __name__ == "__main__":
     platform.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
+    platform.config.update({key: dict(value) for key, value in cfg.items()})
 
     set_random_seed(seed)
 
@@ -52,13 +50,6 @@ if __name__ == "__main__":
     )
 
     chick = Chick.from_pretrained(model_path)
-
-    platform.config.update(
-        {
-            "n_samples": n_samples,
-            "energy_scale": energy_scale,
-        }
-    )
 
     # metric storage
     mpjpes = []
@@ -76,8 +67,8 @@ if __name__ == "__main__":
         bb_box,
         cam_ind,
     ) in pbar:
-        if k < 5:
-            continue
+        # if k < 1:
+        #     continue
 
         cam_dict = dataset.dataset.cameras()[subject[0]][cam_ind.item()]
         camera = Cam(
@@ -107,7 +98,7 @@ if __name__ == "__main__":
         gt_3D = gt_3D + center.unsqueeze(0).permute(0, 1, 3, 2)
         gt_3D[..., [1, 2], :] = -gt_3D[..., [2, 1], :]
 
-        samples = []
+        # samples = []
         # for frame_idx in range(29):
         out = chick.sample(
             num_samples=n_samples,
@@ -119,9 +110,9 @@ if __name__ == "__main__":
         )
         *_, _sample = out  # get the last element of the generator (the real pose)
         sample = _sample["sample"]
-        samples.append(sample)
+        # samples.append(sample)
 
-        sample = torch.cat(samples, dim=-1)
+        # sample = torch.cat(samples, dim=-1)
 
         sample = sample - center.unsqueeze(0).permute(0, 1, 3, 2)
         sample_2D_proj = camera.proj2D(sample.permute(0, 3, 1, 2))
@@ -144,19 +135,19 @@ if __name__ == "__main__":
         m = m[idx, torch.arange(m.shape[1])]
         mpjpes.append(np.mean(m.cpu().numpy()))
 
-        # v, quantiles = calibration(sample, gt_3D)
-        #
-        # if not np.isnan(v).any():
-        #     total += 1
-        #     quantile_counts += v
-        #
-        # _quantile_freqs = quantile_counts / total
-        # _calibration_score = np.abs(
-        #     np.median(_quantile_freqs, axis=1) - quantiles
-        # ).mean()
+        v, quantiles = calibration(sample, gt_3D)
+
+        if not np.isnan(v).any():
+            total += 1
+            quantile_counts += v
+
+        _quantile_freqs = quantile_counts / total
+        _calibration_score = np.abs(
+            np.median(_quantile_freqs, axis=1) - quantiles
+        ).mean()
 
         pbar.set_description(
-            f"{mpjpes[-1]:.2f} | {np.nanmean(mpjpes):.2f}"  # | {_calibration_score:.2f}"
+            f"{mpjpes[-1]:.2f} | {np.nanmean(mpjpes):.2f} | {_calibration_score:.2f}"
         )
 
         platform.log(
@@ -167,25 +158,25 @@ if __name__ == "__main__":
             }
         )
 
-        plot_2D(
-            gt_3D_projected.permute(0, 2, 3, 1),
-            input_2D,
-            sample_2D_proj,
-            f"2{k:02}: 2D {action[0]} {1} frames {n_samples} samples energy scale",
-            1,
-            alpha=0.1,
-        )
+        # plot_2D(
+        #     gt_3D_projected.permute(0, 2, 3, 1),
+        #     input_2D,
+        #     sample_2D_proj,
+        #     f"2{k:02}: 2D {action[0]} {1} frames {n_samples} samples energy scale",
+        #     1,
+        #     alpha=0.1,
+        # )
+        #
+        # for s in sample:
+        #     plot_3D(
+        #         gt_3D.permute(0, 2, 3, 1),
+        #         s.unsqueeze(0).permute(
+        #             0, 2, 3, 1
+        #         ),  # [idx, ..., torch.arange(29)].permute(1, 2, 0).unsqueeze(0),#[idx][None],
+        #         f"2{k:02}: 3D {action[0]} {1} frames {n_samples} samples energy scale",
+        #         frames,
+        #         alpha=0.1,
+        #     )
 
-        for s in sample:
-            plot_3D(
-                gt_3D.permute(0, 2, 3, 1),
-                s.unsqueeze(0).permute(
-                    0, 2, 3, 1
-                ),  # [idx, ..., torch.arange(29)].permute(1, 2, 0).unsqueeze(0),#[idx][None],
-                f"2{k:02}: 3D {action[0]} {1} frames {n_samples} samples energy scale",
-                frames,
-                alpha=0.1,
-            )
-
-        if k >= 0:
+        if k >= 100:
             exit()
