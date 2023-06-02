@@ -1,0 +1,5 @@
+EXPERIMENT:
+  N_SAMPLES: 50
+  ENERGY_SCALE: 30
+  FRAMES: 29
+  MODEL_PATH: "./models/model_30_frames.pt"

@@ -2,17 +2,11 @@ from yacs.config import CfgNode as CN
 
 _C = CN()
 
-_C.SYSTEM = CN()
-# Number of GPUS to use in the experiment
-_C.SYSTEM.NUM_GPUS = 8
-# Number of workers for doing things
-_C.SYSTEM.NUM_WORKERS = 4
-
-_C.TRAIN = CN()
-# A very important hyperparameter
-_C.TRAIN.HYPERPARAMETER_1 = 0.1
-# The all important scales for the stuff
-_C.TRAIN.SCALES = (2, 4, 8, 16)
+_C.EXPERIMENT = CN()
+_C.EXPERIMENT.N_SAMPLES = 50
+_C.EXPERIMENT.ENERGY_SCALE = 30
+_C.EXPERIMENT.FRAMES = 29
+_C.EXPERIMENT.MODEL_PATH = "./models/model_30_frames.pt"
 
 
 def get_cfg_defaults():
@@ -32,7 +26,7 @@ def get_experiment_config(experiment_name):
     merged in.
     """
     cfg = _C.clone()
-    cfg.merge_from_file(f"../configs/{experiment_name}.yaml")
+    cfg.merge_from_file(f"../experiments/{experiment_name}.yaml")
     cfg.freeze()
     return cfg
 

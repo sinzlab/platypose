@@ -1,4 +1,0 @@
-SYSTEM:
-  NUM_GPUS: 2
-TRAIN:
-  SCALES: (1, 2)
