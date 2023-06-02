@@ -88,7 +88,7 @@ class Chick(nn.Module):
         :return: state dict of model
         """
 
-        cache_path = './models/' + path_or_artefact
+        cache_path = "./models/" + path_or_artefact
         # check if ends with .pt
         if not path_or_artefact.endswith(".pt"):
             cache_path = cache_path + ".pt"

@@ -1,10 +1,11 @@
-from yacs.config import CfgNode as CN
-from typing import Literal
 import argparse
+from typing import Literal
 
-Projections = Literal['camera', 'dummy']
-Keypoints = Literal['cpn_ft_h36m_dbb', 'gt']
-Datasets = Literal['h36m']
+from yacs.config import CfgNode as CN
+
+Projections = Literal["camera", "dummy"]
+Keypoints = Literal["cpn_ft_h36m_dbb", "gt"]
+Datasets = Literal["h36m"]
 
 _C = CN()
 
@@ -19,16 +20,17 @@ _C.experiment.dataset: Datasets = "h36m"
 _C.experiment.keypoints: Keypoints = "gt"
 
 
-parser = argparse.ArgumentParser(description='Experiment settings.')
-parser.add_argument('--dataset', type=str, help='Dataset to use.')
-parser.add_argument('--keypoints', type=str, help='2D detections to use.')
-parser.add_argument('--num_samples', type=int, help='Number of samples.')
-parser.add_argument('--energy_scale', type=int, help='Energy scale.')
-parser.add_argument('--num_frames', type=float, help='Number of frames.')
-parser.add_argument('--model', type=str, help='Model to use.')
-parser.add_argument('--seed', type=int, help='Random seed.')
-parser.add_argument('--projection', type=str, help='Projection to use.')
-parser.add_argument('--experiment', type=str, help='Name of the experiment.')
+parser = argparse.ArgumentParser(description="Experiment settings.")
+parser.add_argument("--dataset", type=str, help="Dataset to use.")
+parser.add_argument("--keypoints", type=str, help="2D detections to use.")
+parser.add_argument("--num_samples", type=int, help="Number of samples.")
+parser.add_argument("--energy_scale", type=int, help="Energy scale.")
+parser.add_argument("--num_frames", type=float, help="Number of frames.")
+parser.add_argument("--model", type=str, help="Model to use.")
+parser.add_argument("--seed", type=int, help="Random seed.")
+parser.add_argument("--projection", type=str, help="Projection to use.")
+parser.add_argument("--experiment", type=str, help="Name of the experiment.")
+
 
 def get_cfg_defaults() -> CN:
     """Get a yacs CfgNode object with default values for my_project."""
@@ -69,7 +71,9 @@ def get_experiment_config(experiment_name: str = None) -> CN:
         experiment_name = args.experiment
 
     if experiment_name is None:
-        raise ValueError("You must provide an experiment_name either as an argument or as a parameter")
+        raise ValueError(
+            "You must provide an experiment_name either as an argument or as a parameter"
+        )
 
     cfg = _C.clone()
     cfg.merge_from_file(f"./experiments/{experiment_name}.yaml")

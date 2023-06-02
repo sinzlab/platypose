@@ -10,12 +10,12 @@ import torch
 from tqdm import tqdm
 
 from chick.chick import Chick
+from chick.config import get_experiment_config
 from chick.dataset.h36m import H36MVideoDataset
 from chick.energies import inpaint_2d_energy
 from chick.platform import platform
 from chick.utils.plot_utils import plot_2D, plot_3D
 from chick.utils.reproducibility import set_random_seed
-from chick.config import get_experiment_config
 from propose.propose.cameras.Camera import Camera, DummyCamera
 from propose.propose.evaluation.calibration import calibration
 from propose.propose.evaluation.mpjpe import mpjpe
@@ -173,7 +173,7 @@ if __name__ == "__main__":
             sample_2D_proj,
             f"2{k:02}: 2D {action[0]} {1} frames {n_samples} samples energy scale",
             1,
-            alpha=0.1
+            alpha=0.1,
         )
 
         for s in sample:

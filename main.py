@@ -1,14 +1,15 @@
 import random
 
+from common.h36m_dataset import Human36mDataset
+from common.load_data_hm36 import Fusion
+from common.opt import opts
+from common.utils import *
+
 from chick.train.train_platforms import NoPlatform
 from chick.train.training_loop import TrainLoop
 from chick.utils.fixseed import fixseed
 from chick.utils.model_util import create_model_and_diffusion
 from chick.utils.parser_util import train_args
-from common.h36m_dataset import Human36mDataset
-from common.load_data_hm36 import Fusion
-from common.opt import opts
-from common.utils import *
 
 opt = opts().parse()
 args = train_args()
