@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "platypose"
+version = "0.1.0"
+description = "Diffusion based pose lifting"
+authors = ["paul <ppierzc@gmail.copm>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+yacs = "^0.1.8"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
