@@ -13,26 +13,30 @@ from chick.chick import Chick
 from chick.dataset.h36m import H36MVideoDataset
 from chick.energies import inpaint_2d_energy
 from chick.platform import platform
-from chick.utils.plot_utils import plot_2D, plot_3d
+from chick.utils.plot_utils import plot_2D, plot_3D
 from chick.utils.reproducibility import set_random_seed
+from chick.config import get_experiment_config
 from propose.propose.cameras.Camera import Camera, DummyCamera
 from propose.propose.evaluation.calibration import calibration
 from propose.propose.evaluation.mpjpe import mpjpe
 
 # Parameters
-n_samples = 50
-energy_scale = 30
-frames = 29
-model_path = "./models/model_30_frames.pt"
+cfg = get_experiment_config()
+n_samples = cfg.experiment.num_samples
+energy_scale = cfg.experiment.energy_scale
+frames = cfg.experiment.num_frames
+model_path = cfg.experiment.model
 # model_path = "./models/old_model.pt"
-seed = 1
+seed = cfg.experiment.seed
 dataset_path = "data_3d_h36m.npz"
 root_path = "./dataset/"
 Cam = {
     "dummy": DummyCamera,
-    "normal": Camera,
-}["dummy"]
+    "camera": Camera,
+}[cfg.experiment.projection]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+print(cfg)
 
 
 if __name__ == "__main__":
@@ -106,7 +110,7 @@ if __name__ == "__main__":
         samples = []
         # for frame_idx in range(29):
         out = chick.sample(
-            num_samples=1,
+            num_samples=n_samples,
             num_frames=frames,
             energy_fn=partial(
                 inpaint_2d_energy, x_2d=input_2D, center=center, camera=camera
@@ -163,14 +167,14 @@ if __name__ == "__main__":
             }
         )
 
-        # plot_2D(
-        #     gt_3D_projected.permute(0, 2, 3, 1),
-        #     input_2D,
-        #     sample_2D_proj,
-        #     f"2{k:02}: 2D {action[0]} {1} frames {n_samples} samples energy scale",
-        #     1,
-        #     alpha=0.1
-        # )
+        plot_2D(
+            gt_3D_projected.permute(0, 2, 3, 1),
+            input_2D,
+            sample_2D_proj,
+            f"2{k:02}: 2D {action[0]} {1} frames {n_samples} samples energy scale",
+            1,
+            alpha=0.1
+        )
 
         for s in sample:
             plot_3D(

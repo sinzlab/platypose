@@ -20,7 +20,7 @@ services:
   python:
     &python
     image: chick
-    entrypoint: [ "python" ]
+    entrypoint: [ "poetry", "run", "python" ]
     env_file:
         - .env
 
@@ -33,7 +33,7 @@ services:
       - ./output:/output
       - ./chick:/src/chick
       - ./common:/src/common
-    entrypoint: [ "python", "./main.py" ]
+    entrypoint: [ "poetry", "run", "python", "./main.py" ]
     env_file:
         - .env
 
@@ -46,6 +46,6 @@ services:
       - ./output:/output
       - ./chick:/src/chick
       - ./:/src
-    entrypoint: [ "python", "/src/scripts/eval.py" ]
+    entrypoint: [ "poetry", "run", "python", "/src/scripts/eval.py" ]
     env_file:
         - .env

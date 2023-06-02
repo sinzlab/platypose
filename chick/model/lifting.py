@@ -45,8 +45,6 @@ class MDM(nn.Module):
         self.data_rep = data_rep
         self.dataset = dataset
 
-        print("njoints, nfeats", njoints, nfeats)
-
         self.pose_rep = pose_rep
         self.glob = glob
         self.glob_rot = glob_rot
@@ -83,7 +81,6 @@ class MDM(nn.Module):
         self.skeleton_encoder = SkeletonEncoder(latent_dim=self.latent_dim)
 
         if self.arch == "trans_enc":
-            print("TRANS_ENC init")
             seqTransEncoderLayer = MartinezTransformerEncoderLayer(
                 d_model=self.latent_dim,
                 nhead=self.num_heads,
@@ -296,7 +293,7 @@ class InputProcess(nn.Module):
         self.data_rep = data_rep
         self.input_feats = input_feats
         self.latent_dim = latent_dim
-        print(self.input_feats)
+
         self.poseEmbedding = nn.Linear(self.input_feats, self.latent_dim)
         if self.data_rep == "rot_vel":
             self.velEmbedding = nn.Linear(self.input_feats, self.latent_dim)

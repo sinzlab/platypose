@@ -518,7 +518,6 @@ class Fusion(data.Dataset):
                 out_all=opt.out_all,
             )
             self.key_index = self.generator.saved_index
-            print("INFO: Testing on {} frames".format(self.generator.num_frames()))
 
     def prepare_data(self, dataset, folder_list):
         for subject in folder_list:

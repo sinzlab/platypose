@@ -80,16 +80,22 @@ class Chick(nn.Module):
         )
 
     @staticmethod
-    def _get_state_dict(path_or_artefact):
+    def _get_state_dict(path_or_artefact: str, use_cache: bool = True):
         """
         Checks if path_or_artefact is a path if not tries to download the model from wandb
         :param path_or_artefact: path to model or wandb artifact
+        :param use_cache: if true uses the cached model
         :return: state dict of model
         """
 
-        if os.path.exists(path_or_artefact):
-            print(path_or_artefact)
-            return torch.load(path_or_artefact, map_location="cpu")
+        cache_path = './models/' + path_or_artefact
+        # check if ends with .pt
+        if not path_or_artefact.endswith(".pt"):
+            cache_path = cache_path + ".pt"
+
+        if os.path.exists(cache_path) and use_cache:
+            print("Using cached model")
+            return torch.load(cache_path, map_location="cpu")
         else:
             return download_wandb_artefact(path_or_artefact)
 

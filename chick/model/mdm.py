@@ -79,7 +79,6 @@ class MDM(nn.Module):
         self.emb_trans_dec = emb_trans_dec
 
         if self.arch == "trans_enc":
-            print("TRANS_ENC init")
             seqTransEncoderLayer = nn.TransformerEncoderLayer(
                 d_model=self.latent_dim,
                 nhead=self.num_heads,

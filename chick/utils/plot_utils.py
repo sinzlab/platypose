@@ -6,7 +6,6 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from mpl_toolkits.mplot3d.proj3d import proj_transform
 
 from chick.utils.palettes import palettes
-from chick.utils.plot_utils import plot_arrows
 from propose.propose.poses.human36m import Human36mPose
 
 

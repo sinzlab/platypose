@@ -1,0 +1,7 @@
+experiment:
+  num_samples: 50
+  energy_scale: 30
+  num_frames: 1
+  model: "sinzlab/chick/MDM_H36m_1_frame_50_steps:latest"
+  seed: 1
+  projection: "dummy"
