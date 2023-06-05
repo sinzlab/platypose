@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from chick.chick import Chick
+from chick.pipeline import PlatyPose
 from chick.config import get_experiment_config
 from chick.dataset.h36m import H36MVideoDataset
 from chick.energies import inpaint_2d_energy
@@ -43,7 +43,7 @@ if __name__ == "__main__":
         dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=False
     )
 
-    chick = Chick.from_pretrained(cfg.model.name)
+    pipe = PlatyPose.from_pretrained(cfg.model.name)
 
     # metric storage
     mpjpes = []
@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
         # samples = []
         # for frame_idx in range(29):
-        out = chick.sample(
+        out = pipe.sample(
             num_samples=cfg.experiment.num_samples,
             num_frames=cfg.model.num_frames,
             energy_fn=partial(

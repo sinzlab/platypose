@@ -3,7 +3,7 @@ import time
 import torch
 import wandb
 
-from chick.chick import Chick
+from chick.pipeline import PlatyPose
 from chick.config import get_experiment_config
 from chick.dataset.h36m import H36MVideoDataset
 from chick.platform import platform
@@ -31,11 +31,11 @@ if __name__ == "__main__":
         pin_memory=False,
     )
 
-    # initialize a clean model
-    chick = Chick.train(dataloader, cfg)
+    # initialize a clean pipeline
+    pipe = PlatyPose.train(dataloader, cfg)
 
     # save the model
-    torch.save(chick.model.state_dict(), f"./output/{cfg.model.name}.pt")
+    torch.save(pipe.model.state_dict(), f"./output/{cfg.model.name}.pt")
     artifact = wandb.Artifact(
         name={cfg.model.name},
         type="model",

@@ -54,22 +54,23 @@ this will spawn a docker container that will start the `./scrips/eval.py` script
 ## Documentation
 
 ### Chick sampling
-Here is a short snippet on how to load in the model with pretrained weights and how to generate samples from the model. 
+Here is a short snippet on how to load in the model with pretrained weights and how to generate samples from the model.
+
 ```python
-from chick.chick import Chick
+from chick.pipeline import PlatyPose
 
-chick = Chick.from_pretrained("sinzlab/chick/MDM_H36m_1_frame_50_steps:latest")
+pipe = PlatyPose.from_pretrained("sinzlab/chick/MDM_H36m_1_frame_50_steps:latest")
 
-samples_progressive = chick.sample(
+samples_progressive = pipe.sample(
     num_samples=10,
     num_frames=1,
-    energy_fn=..., # some energy function
+    energy_fn=...,  # some energy function
     energy_scale=100,
-) # returns a generator of samples for each step of the diffusion process
+)  # returns a generator of samples for each step of the diffusion process
 
-*_, _sample = samples_progressive # get the final sample
+*_, _sample = samples_progressive  # get the final sample
 
-sample = _sample["sample"] # get the 3D pose sample
+sample = _sample["sample"]  # get the 3D pose sample
 ```
 
 ### Experiment Configs

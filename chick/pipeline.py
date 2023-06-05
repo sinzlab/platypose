@@ -10,7 +10,7 @@ from chick.utils.model_util import create_model_and_diffusion
 from chick.utils.wandb import download_wandb_artefact
 
 
-class Chick(nn.Module):
+class PlatyPose(nn.Module):
     def __init__(
         self,
         config=None,
