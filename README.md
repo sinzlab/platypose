@@ -34,7 +34,7 @@ docker-compose build base
 #### 4. Run the training
 To train the model run the following command:
 ```bash
-docker-compose run -d --name platypose_train_0 -e NVIDIA_VISIBLE_DEVICES=0 train
+docker-compose run -d --name platypose_train_0 -e NVIDIA_VISIBLE_DEVICES=0 train --experiment single_frame
 ```
 this will spawn a docker container that will start the `main.py` script and will detach the process from the terminal.
 the `platypose_train_0` can be any name you want to give to the process. In the example 0 indicates the GPU id this process will use.
@@ -46,7 +46,7 @@ docker logs platypose_train_0
 #### 5. Run the evaluation
 To evaluate the model run the following command:
 ```bash
-docker-compose run --name platypose_eval_0 -e NVIDIA_VISIBLE_DEVICES=0 eval
+docker-compose run --name platypose_eval_0 -e NVIDIA_VISIBLE_DEVICES=0 eval --experiment single_frame
 ```
 this will spawn a docker container that will start the `./scrips/eval.py` script.
 
