@@ -1,6 +1,7 @@
 import argparse
 from typing import Literal
 
+import torch
 from yacs.config import CfgNode as CN
 
 Projections = Literal["camera", "dummy"]
@@ -9,15 +10,26 @@ Datasets = Literal["h36m"]
 
 _C = CN()
 
+_C.seed = 1
+
 _C.experiment = CN()
 _C.experiment.num_samples = 200
 _C.experiment.energy_scale = 30
-_C.experiment.num_frames = 29
-_C.experiment.model = "sinzlab/chick/MDM_H36m_1_frame_50_steps:latest"
-_C.experiment.seed = 1
 _C.experiment.projection: Projections = "dummy"
 _C.experiment.dataset: Datasets = "h36m"
 _C.experiment.keypoints: Keypoints = "gt"
+_C.dataset_path = "data_3d_h36m.npz"
+_C.root_path = "./dataset/"
+
+_C.model = CN()
+_C.model.num_frames = 29
+_C.model.name = "sinzlab/chick/MDM_H36m_1_frame_50_steps:latest"
+
+_C.train = CN()
+_C.train.batch_size = 64
+_C.train.num_steps = 600_000
+_C.train.lr = 1e-4
+_C.train.weight_decay = 0.0
 
 
 parser = argparse.ArgumentParser(description="Experiment settings.")
@@ -53,6 +65,9 @@ def merge_args(cfg: CN, args: argparse.Namespace) -> CN:
         if key in cfg.experiment:
             cfg.experiment[key] = value
 
+        if key in cfg.model:
+            cfg.model[key] = value
+
     return cfg
 
 
@@ -79,6 +94,8 @@ def get_experiment_config(experiment_name: str = None) -> CN:
     cfg.merge_from_file(f"./experiments/{experiment_name}.yaml")
 
     cfg = merge_args(cfg, args)
+
+    cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     cfg.freeze()
     return cfg

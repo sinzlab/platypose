@@ -2,7 +2,10 @@ import os
 
 import torch
 import torch.nn as nn
+import tqdm
 
+from chick.diffusion.fp16_util import MixedPrecisionTrainer
+from chick.diffusion.resample import UniformSampler
 from chick.utils.model_util import create_model_and_diffusion
 from chick.utils.wandb import download_wandb_artefact
 
@@ -117,3 +120,64 @@ class Chick(nn.Module):
         chick.to(chick.device)
 
         return chick
+
+    @classmethod
+    def train(cls, dataloader, cfg):
+        self = cls()
+        self.to(cfg.device)
+
+        mp_trainer = MixedPrecisionTrainer(
+            model=self.model,
+            use_fp16=False,
+            fp16_scale_growth=1e-3,
+        )
+        schedule_sampler = UniformSampler(self.diffusion)
+        opt = torch.optim.AdamW(
+            mp_trainer.master_params,
+            lr=cfg.train.lr,
+            weight_decay=cfg.train.weight_decay,
+        )
+
+        num_epochs = cfg.num_steps // len(dataloader) + 1
+        for epoch in range(num_epochs):
+            print(f"Starting epoch {epoch}")
+            for (
+                batch_cam,
+                gt_3D,
+                input_2D,
+                action,
+                subject,
+                scale,
+                bb_box,
+                cam_ind,
+            ) in tqdm(dataloader):
+                gt_3D[:, :, 0] = 0  # set the root to 0
+
+                batch = gt_3D.permute(0, 2, 3, 1)
+                batch = batch.to(cfg.device)
+
+                cond = {}  # no conditioning training
+
+                mp_trainer.zero_grad()
+                for i in range(0, batch.shape[0], cfg.batch_size):
+                    # Eliminates the microbatch feature
+                    assert i == 0
+                    micro = batch
+                    micro_cond = cond
+                    t, weights = schedule_sampler.sample(micro.shape[0], cfg.device)
+
+                    losses = self.diffusion.training_losses(
+                        self.model,
+                        micro,  # [bs, ch, image_size, image_size]
+                        t,  # [bs](int) sampled timesteps
+                        model_kwargs=micro_cond,
+                        dataset=dataloader.dataset,
+                    )
+
+                    loss = (losses["loss"] * weights).mean()
+
+                    mp_trainer.backward(loss)
+
+                mp_trainer.optimize(opt)
+
+        return self

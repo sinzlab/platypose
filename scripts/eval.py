@@ -22,34 +22,28 @@ from propose.propose.evaluation.mpjpe import mpjpe
 
 # Parameters
 cfg = get_experiment_config()
-n_samples = cfg.experiment.num_samples
-energy_scale = cfg.experiment.energy_scale
-frames = cfg.experiment.num_frames
-model_path = cfg.experiment.model
-# model_path = "./models/old_model.pt"
-seed = cfg.experiment.seed
-dataset_path = "data_3d_h36m.npz"
-root_path = "./dataset/"
+
 Cam = {
     "dummy": DummyCamera,
     "camera": Camera,
 }[cfg.experiment.projection]
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
     platform.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
     platform.config.update({key: dict(value) for key, value in cfg.items()})
 
-    set_random_seed(seed)
+    set_random_seed(cfg.seed)
 
     dataset = H36MVideoDataset(
-        path=root_path + dataset_path, root_path=root_path, frames=frames
+        path=cfg.root_path + cfg.dataset_path,
+        root_path=cfg.root_path,
+        frames=cfg.model.num_frames,
     )
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=False
     )
 
-    chick = Chick.from_pretrained(model_path)
+    chick = Chick.from_pretrained(cfg.model.name)
 
     # metric storage
     mpjpes = []
@@ -83,7 +77,7 @@ if __name__ == "__main__":
             ),
         )
 
-        gt_3D = gt_3D.to(device)
+        gt_3D = gt_3D.to(cfg.device)
 
         center = gt_3D[:, :, 0].clone()
         center = torch.zeros_like(center)
@@ -101,12 +95,12 @@ if __name__ == "__main__":
         # samples = []
         # for frame_idx in range(29):
         out = chick.sample(
-            num_samples=n_samples,
-            num_frames=frames,
+            num_samples=cfg.experiment.num_samples,
+            num_frames=cfg.model.num_frames,
             energy_fn=partial(
                 inpaint_2d_energy, x_2d=input_2D, center=center, camera=camera
             ),
-            energy_scale=energy_scale,
+            energy_scale=cfg.experiment.energy_scale,
         )
         *_, _sample = out  # get the last element of the generator (the real pose)
         sample = _sample["sample"]

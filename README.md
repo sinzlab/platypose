@@ -76,6 +76,8 @@ sample = _sample["sample"] # get the 3D pose sample
 Experiments are configured via YAML files and can be overriden via command line arguments.
 The YAML files are located in the `experiments` folder.
 
+The YAML file overrides the default config file located in `chick/config.py`.
+
 An example config file is shown below:
 ```yaml
 experiment:

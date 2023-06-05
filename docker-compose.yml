@@ -28,12 +28,12 @@ services:
     image: chick
     volumes:
       - ./scripts:/scripts
-      - ./dataset:/src/dataset
+      - ./data:/data
       - ./experiments:/experiments
       - ./output:/output
       - ./chick:/src/chick
-      - ./common:/src/common
-    entrypoint: [ "poetry", "run", "python", "./main.py" ]
+      - ./:/src
+    entrypoint: [ "poetry", "run", "python", "/src/scripts/train.py" ]
     env_file:
         - .env
 

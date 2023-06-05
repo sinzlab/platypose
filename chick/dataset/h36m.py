@@ -1,5 +1,6 @@
 import copy
 from argparse import Namespace
+from typing import Literal
 
 import numpy as np
 import torch.utils.data as data
@@ -9,6 +10,8 @@ from chick.dataset.generator import ChunkedGenerator
 from chick.dataset.mocap_dataset import MocapDataset
 from chick.dataset.skeleton import Skeleton
 from chick.utils.reproducibility import deterministic_random
+
+DatasetMode = Literal["train", "eval"]
 
 h36m_skeleton = Skeleton(
     parents=[
@@ -682,7 +685,9 @@ class Fusion(data.Dataset):
 
 
 class H36MVideoDataset(Fusion):
-    def __init__(self, path, root_path, frames=1, config=None):
+    def __init__(
+        self, path, root_path, frames=1, mode: DatasetMode = "eval", config=None
+    ):
         self.config = {
             "actions": "*",
             "batch_size": 64,
@@ -701,6 +706,8 @@ class H36MVideoDataset(Fusion):
             "reverse_augmentation": False,
         }
 
+        self.train = True if mode == "train" else False
+
         self.config["pad"] = self.config["frames"] // 2
 
         if config is not None:
@@ -710,5 +717,5 @@ class H36MVideoDataset(Fusion):
 
         self.dataset = Human36mDataset(path, crop_uv=self.config.crop_uv)
         super(H36MVideoDataset, self).__init__(
-            opt=self.config, train=False, dataset=self.dataset, root_path=root_path
+            opt=self.config, train=self.train, dataset=self.dataset, root_path=root_path
         )
