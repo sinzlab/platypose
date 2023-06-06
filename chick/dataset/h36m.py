@@ -492,8 +492,6 @@ class Fusion(data.Dataset):
                 self.poses_train_2d,
                 self.stride,
                 pad=self.pad,
-                augment=opt.data_augmentation,
-                reverse_aug=opt.reverse_augmentation,
                 kps_left=self.kps_left,
                 kps_right=self.kps_right,
                 joints_left=self.joints_left,
@@ -513,7 +511,6 @@ class Fusion(data.Dataset):
                 self.poses_test_2d,
                 self.stride,
                 pad=self.pad,
-                augment=False,
                 kps_left=self.kps_left,
                 kps_right=self.kps_right,
                 joints_left=self.joints_left,
@@ -708,7 +705,7 @@ class H36MVideoDataset(Fusion):
 
         self.train = True if mode == "train" else False
 
-        self.config["pad"] = self.config["frames"] // 2
+        self.config["pad"] = (self.config["frames"] - 1) / 2
 
         if config is not None:
             self.config.update(config)

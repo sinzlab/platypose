@@ -22,7 +22,7 @@ _C.dataset_path = "data_3d_h36m.npz"
 _C.root_path = "./dataset/"
 
 _C.model = CN()
-_C.model.num_frames = 29
+_C.model.num_frames = 1
 _C.model.name = "sinzlab/chick/MDM_H36m_1_frame_50_steps:latest"
 
 _C.train = CN()
@@ -37,7 +37,7 @@ parser.add_argument("--dataset", type=str, help="Dataset to use.")
 parser.add_argument("--keypoints", type=str, help="2D detections to use.")
 parser.add_argument("--num_samples", type=int, help="Number of samples.")
 parser.add_argument("--energy_scale", type=int, help="Energy scale.")
-parser.add_argument("--num_frames", type=float, help="Number of frames.")
+parser.add_argument("--num_frames", type=int, help="Number of frames.")
 parser.add_argument("--model", type=str, help="Model to use.")
 parser.add_argument("--seed", type=int, help="Random seed.")
 parser.add_argument("--projection", type=str, help="Projection to use.")
@@ -95,10 +95,17 @@ def get_experiment_config(experiment_name: str = None) -> CN:
 
     cfg = merge_args(cfg, args)
 
-    cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    cfg.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     cfg.freeze()
     return cfg
+
+
+def cfg_to_dict(cfg):
+    if isinstance(cfg, CN):
+        return {key: cfg_to_dict(cfg[key]) for key in cfg.keys()}
+    else:
+        return cfg
 
 
 if __name__ == "__main__":

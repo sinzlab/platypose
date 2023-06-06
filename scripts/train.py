@@ -1,11 +1,14 @@
+import sys
 import time
 
 import torch
 import wandb
 
-from chick.pipeline import PlatyPose
-from chick.config import get_experiment_config
+sys.path.append("/src")
+
+from chick.config import cfg_to_dict, get_experiment_config
 from chick.dataset.h36m import H36MVideoDataset
+from chick.pipeline import SkeletonPipeline
 from chick.platform import platform
 from chick.utils.reproducibility import set_random_seed
 
@@ -13,7 +16,7 @@ cfg = get_experiment_config()
 
 if __name__ == "__main__":
     platform.init(project="chick", entity="sinzlab", name=f"train_{time.time()}")
-    platform.config.update({key: dict(value) for key, value in cfg.items()})
+    platform.config.update(cfg_to_dict(cfg))
 
     set_random_seed(cfg.seed)
 
@@ -32,7 +35,7 @@ if __name__ == "__main__":
     )
 
     # initialize a clean pipeline
-    pipe = PlatyPose.train(dataloader, cfg)
+    pipe = SkeletonPipeline.pretrain(dataloader, cfg)
 
     # save the model
     torch.save(pipe.model.state_dict(), f"./output/{cfg.model.name}.pt")

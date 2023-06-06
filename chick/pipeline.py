@@ -2,7 +2,7 @@ import os
 
 import torch
 import torch.nn as nn
-import tqdm
+from tqdm import tqdm
 
 from chick.diffusion.fp16_util import MixedPrecisionTrainer
 from chick.diffusion.resample import UniformSampler
@@ -10,7 +10,7 @@ from chick.utils.model_util import create_model_and_diffusion
 from chick.utils.wandb import download_wandb_artefact
 
 
-class PlatyPose(nn.Module):
+class SkeletonPipeline(nn.Module):
     def __init__(
         self,
         config=None,
@@ -122,7 +122,7 @@ class PlatyPose(nn.Module):
         return chick
 
     @classmethod
-    def train(cls, dataloader, cfg):
+    def pretrain(cls, dataloader, cfg):
         self = cls()
         self.to(cfg.device)
 
@@ -138,7 +138,7 @@ class PlatyPose(nn.Module):
             weight_decay=cfg.train.weight_decay,
         )
 
-        num_epochs = cfg.num_steps // len(dataloader) + 1
+        num_epochs = cfg.train.num_steps // len(dataloader) + 1
         for epoch in range(num_epochs):
             print(f"Starting epoch {epoch}")
             for (
@@ -156,10 +156,15 @@ class PlatyPose(nn.Module):
                 batch = gt_3D.permute(0, 2, 3, 1)
                 batch = batch.to(cfg.device)
 
-                cond = {}  # no conditioning training
+                cond = {
+                    "y": {
+                        "mask": torch.ones((batch.shape[0], 1)).to(cfg.device),
+                        "uncond": True,
+                    },
+                }
 
                 mp_trainer.zero_grad()
-                for i in range(0, batch.shape[0], cfg.batch_size):
+                for i in range(0, batch.shape[0], cfg.train.batch_size):
                     # Eliminates the microbatch feature
                     assert i == 0
                     micro = batch

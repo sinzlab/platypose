@@ -100,7 +100,7 @@ class ChunkedGenerator:
         self.batch_2d = np.empty(
             (
                 batch_size,
-                chunk_length + 2 * pad,
+                chunk_length + int(2 * pad),
                 poses_2d[key].shape[-2],
                 poses_2d[key].shape[-1],
             )
@@ -154,8 +154,8 @@ class ChunkedGenerator:
     def get_batch(self, seq_i, start_3d, end_3d, flip, reverse):
         subject, action, cam_index = seq_i
         seq_name = (subject, action, int(cam_index))
-        start_2d = start_3d - self.pad - self.causal_shift
-        end_2d = end_3d + self.pad - self.causal_shift
+        start_2d = start_3d - np.floor(self.pad).astype(int) - self.causal_shift
+        end_2d = end_3d + np.ceil(self.pad).astype(int) - self.causal_shift
 
         seq_2d = self.poses_2d[seq_name].copy()
         low_2d = max(start_2d, 0)

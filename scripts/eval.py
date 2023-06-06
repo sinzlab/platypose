@@ -2,17 +2,16 @@ import sys
 import time
 from functools import partial
 
-sys.path.append("/src")
-
-
 import numpy as np
 import torch
 from tqdm import tqdm
 
-from chick.pipeline import PlatyPose
-from chick.config import get_experiment_config
+sys.path.append("/src")
+
+from chick.config import cfg_to_dict, get_experiment_config
 from chick.dataset.h36m import H36MVideoDataset
 from chick.energies import inpaint_2d_energy
+from chick.pipeline import SkeletonPipeline
 from chick.platform import platform
 from chick.utils.plot_utils import plot_2D, plot_3D
 from chick.utils.reproducibility import set_random_seed
@@ -30,7 +29,7 @@ Cam = {
 
 if __name__ == "__main__":
     platform.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
-    platform.config.update({key: dict(value) for key, value in cfg.items()})
+    platform.config.update(cfg_to_dict(cfg))
 
     set_random_seed(cfg.seed)
 
@@ -43,7 +42,7 @@ if __name__ == "__main__":
         dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=False
     )
 
-    pipe = PlatyPose.from_pretrained(cfg.model.name)
+    pipe = SkeletonPipeline.from_pretrained(cfg.model.name)
 
     # metric storage
     mpjpes = []
@@ -61,9 +60,6 @@ if __name__ == "__main__":
         bb_box,
         cam_ind,
     ) in pbar:
-        # if k < 1:
-        #     continue
-
         cam_dict = dataset.dataset.cameras()[subject[0]][cam_ind.item()]
         camera = Cam(
             intrinsic_matrix=Cam.construct_intrinsic_matrix(*cam_dict["intrinsic"][:4]),
@@ -171,6 +167,3 @@ if __name__ == "__main__":
         #         frames,
         #         alpha=0.1,
         #     )
-
-        if k >= 100:
-            exit()
