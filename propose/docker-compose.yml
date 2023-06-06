@@ -1,0 +1,44 @@
+version: '3.4'
+x-build: &build
+  context: .
+  dockerfile: Dockerfile
+
+x-shared: &common
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args:
+      - GITHUB_USER=${GITHUB_USER}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - DEV_SOURCE=${DEV_SOURCE}
+  volumes:
+    - .:/src/propose
+    - ./notebooks:/notebooks
+    - ./tests:/tests
+  env_file:
+    - .env
+
+services:
+  base:
+    image: propose
+    <<: *common
+    volumes:
+      - .:/src/propose
+      - ./scripts:/scripts
+      - ./data:/data
+
+  pytest:
+    <<: *common
+    volumes:
+      - .:/src/propose
+      - ./tests:/tests
+    entrypoint: [ "pytest", "/tests/"]
+
+  notebook_server:
+    <<: *common
+    volumes:
+      - .:/src/propose
+      - ./notebooks:/notebooks
+      - ./data:/data
+    ports:
+      - "8888:8888"

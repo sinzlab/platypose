@@ -8,10 +8,12 @@ def load_model_wo_clip(model, state_dict):
     assert len(unexpected_keys) == 0
     assert all([k.startswith("clip_model.") for k in missing_keys])
 
+
 def create_model_and_diffusion(args):
-    model = MDM(**get_model_args(args))
-    diffusion = create_gaussian_diffusion(args)
+    model = MDM(**args)
+    diffusion = create_gaussian_diffusion(**args)
     return model, diffusion
+
 
 def diffusion_defaults():
     """
@@ -27,6 +29,7 @@ def diffusion_defaults():
         rescale_timesteps=False,
         rescale_learned_sigmas=False,
     )
+
 
 def model_and_diffusion_defaults():
     """
@@ -51,6 +54,7 @@ def model_and_diffusion_defaults():
     )
     res.update(diffusion_defaults())
     return res
+
 
 def get_model_args(args):
     # default args
@@ -110,7 +114,9 @@ def get_model_args(args):
     }
 
 
-def create_gaussian_diffusion(args):
+def create_gaussian_diffusion(
+    noise_schedule, sigma_small, lambda_vel, lambda_rcxyz, lambda_fc, **kwargs
+):
     # default params
     predict_xstart = True  # we always predict x_start (a.k.a. x0), that's our deal!
     steps = 50
@@ -119,7 +125,7 @@ def create_gaussian_diffusion(args):
     learn_sigma = False
     rescale_timesteps = False
 
-    betas = gd.get_named_beta_schedule(args.noise_schedule, steps, scale_beta)
+    betas = gd.get_named_beta_schedule(noise_schedule, steps, scale_beta)
     loss_type = gd.LossType.MSE
 
     if not timestep_respacing:
@@ -134,7 +140,7 @@ def create_gaussian_diffusion(args):
         model_var_type=(
             (
                 gd.ModelVarType.FIXED_LARGE
-                if not args.sigma_small
+                if not sigma_small
                 else gd.ModelVarType.FIXED_SMALL
             )
             if not learn_sigma
@@ -142,7 +148,7 @@ def create_gaussian_diffusion(args):
         ),
         loss_type=loss_type,
         rescale_timesteps=rescale_timesteps,
-        lambda_vel=args.lambda_vel,
-        lambda_rcxyz=args.lambda_rcxyz,
-        lambda_fc=args.lambda_fc,
+        lambda_vel=lambda_vel,
+        lambda_rcxyz=lambda_rcxyz,
+        lambda_fc=lambda_fc,
     )

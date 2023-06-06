@@ -8,7 +8,10 @@ import os
 
 from data_loaders.get_data import get_dataset_loader
 from train.train_platforms import (  # required for the eval operation
-    ClearmlPlatform, NoPlatform, TensorboardPlatform)
+    ClearmlPlatform,
+    NoPlatform,
+    TensorboardPlatform,
+)
 from train.training_loop import TrainLoop
 from utils import dist_util
 from utils.fixseed import fixseed

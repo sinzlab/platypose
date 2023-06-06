@@ -14,9 +14,7 @@ import numpy as np
 import torch
 import torch as th
 
-from chick.data_loaders.humanml.scripts import motion_process
-from chick.diffusion.losses import (discretized_gaussian_log_likelihood,
-                                    normal_kl)
+from chick.diffusion.losses import discretized_gaussian_log_likelihood, normal_kl
 from chick.diffusion.nn import mean_flat, sum_flat
 
 
@@ -176,7 +174,6 @@ class GaussianDiffusion:
         assert (betas > 0).all() and (betas <= 1).all()
 
         self.num_timesteps = int(betas.shape[0])
-        print("num timesteps", self.num_timesteps)
 
         alphas = 1.0 - betas
         self.alphas_cumprod = np.cumprod(alphas, axis=0)
@@ -694,6 +691,8 @@ class GaussianDiffusion:
         randomize_class=False,
         cond_fn_with_grad=False,
         const_noise=False,
+        energy_fn=None,
+        energy_scale=1.0,
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -735,22 +734,49 @@ class GaussianDiffusion:
                     size=model_kwargs["y"].shape,
                     device=model_kwargs["y"].device,
                 )
-            with th.no_grad():
-                sample_fn = (
-                    self.p_sample_with_grad if cond_fn_with_grad else self.p_sample
-                )
-                out = sample_fn(
-                    model,
-                    img,
-                    t,
-                    clip_denoised=clip_denoised,
-                    denoised_fn=denoised_fn,
-                    cond_fn=cond_fn,
-                    model_kwargs=model_kwargs,
-                    const_noise=const_noise,
-                )
-                yield out
-                img = out["sample"]
+            sample_fn = self.p_sample_with_grad if cond_fn_with_grad else self.p_sample
+            img = img.requires_grad_()
+            out = sample_fn(
+                model,
+                img,
+                t,
+                clip_denoised=clip_denoised,
+                denoised_fn=denoised_fn,
+                cond_fn=cond_fn,
+                model_kwargs=model_kwargs,
+                const_noise=const_noise,
+            )
+            energy = energy_fn(out["pred_xstart"])
+
+            inpaint = True
+            if inpaint:
+                # idx = 6 #leg
+                # idx = 13
+                # skip = out["sample"][..., idx, :, :].clone()
+                out["sample"][..., [0, 1], :] = energy["input_2D"]
+                # out["sample"][..., idx, :, :] = skip
+            else:
+                for _ in range(1):
+                    energy = energy_fn(out["sample"])
+                    # alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, img.shape)
+                    grad_outputs = th.ones_like(energy["train"])
+
+                    if torch.isnan(energy["train"]).any():
+                        break
+
+                    # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
+                    grad = th.autograd.grad(
+                        outputs=energy["train"],
+                        inputs=out["sample"],
+                        grad_outputs=grad_outputs,
+                    )[0]
+                    # update = (norm_grad / th.norm(norm_grad) * energy_scale)
+                    update = grad * energy_scale
+                    out["sample"] = out["sample"] - update
+
+            yield out
+            img = out["sample"]
+            img.detach_()
 
     def ddim_sample(
         self,
@@ -1620,90 +1646,6 @@ class GaussianDiffusion:
             plt.legend()
             plt.show()
         # print(vel_foots.shape)
-        return 0
-
-    # TODO - NOT USED YET, JUST COMMITING TO NOT DELETE THIS AND KEEP INITIAL IMPLEMENTATION, NOT DONE!
-    def velocity_consistency_loss_humanml3d(self, target, model_output):
-        # root_rot_velocity (B, seq_len, 1)
-        # root_linear_velocity (B, seq_len, 2)
-        # root_y (B, seq_len, 1)
-        # ric_data (B, seq_len, (joint_num - 1)*3) , XYZ
-        # rot_data (B, seq_len, (joint_num - 1)*6) , 6D
-        # local_velocity (B, seq_len, joint_num*3) , XYZ
-        # foot contact (B, seq_len, 4) ,
-
-        target_fc = target[:, -4:, :, :]
-        root_rot_velocity = target[:, :1, :, :]
-        root_linear_velocity = target[:, 1:3, :, :]
-        root_y = target[:, 3:4, :, :]
-        ric_data = target[:, 4:67, :, :]  # 4+(3*21)=67
-        rot_data = target[:, 67:193, :, :]  # 67+(6*21)=193
-        local_velocity = target[:, 193:259, :, :]  # 193+(3*22)=259
-        contact = target[:, 259:, :, :]  # 193+(3*22)=259
-
-        calc_vel_from_xyz = ric_data[:, :, :, 1:] - ric_data[:, :, :, :-1]
-        velocity_from_vector = local_velocity[:, 3:, :, 1:]  # Slicing out root
-        r_rot_quat, r_pos = motion_process.recover_root_rot_pos(
-            target.permute(0, 2, 3, 1).type(th.FloatTensor)
-        )
-        print(f"r_rot_quat: {r_rot_quat.shape}")
-        print(f"calc_vel_from_xyz: {calc_vel_from_xyz.shape}")
-        calc_vel_from_xyz = calc_vel_from_xyz.permute(0, 2, 3, 1)
-        calc_vel_from_xyz = calc_vel_from_xyz.reshape((1, 1, -1, 21, 3)).type(
-            th.FloatTensor
-        )
-        r_rot_quat_adapted = (
-            r_rot_quat[..., :-1, None, :]
-            .repeat((1, 1, 1, 21, 1))
-            .to(calc_vel_from_xyz.device)
-        )
-        print(
-            f"calc_vel_from_xyz: {calc_vel_from_xyz.shape} , {calc_vel_from_xyz.device}"
-        )
-        print(
-            f"r_rot_quat_adapted: {r_rot_quat_adapted.shape}, {r_rot_quat_adapted.device}"
-        )
-
-        calc_vel_from_xyz = motion_process.qrot(r_rot_quat_adapted, calc_vel_from_xyz)
-        calc_vel_from_xyz = calc_vel_from_xyz.reshape((1, 1, -1, 21 * 3))
-        calc_vel_from_xyz = calc_vel_from_xyz.permute(0, 3, 1, 2)
-        print(
-            f"calc_vel_from_xyz: {calc_vel_from_xyz.shape} , {calc_vel_from_xyz.device}"
-        )
-
-        import matplotlib.pyplot as plt
-
-        for i in range(21):
-            plt.plot(
-                np.linalg.norm(
-                    calc_vel_from_xyz[:, i * 3 : (i + 1) * 3, :, :]
-                    .cpu()
-                    .detach()
-                    .numpy()
-                    .reshape((3, -1)),
-                    axis=0,
-                ),
-                label="Calc Vel",
-            )
-            plt.plot(
-                np.linalg.norm(
-                    velocity_from_vector[:, i * 3 : (i + 1) * 3, :, :]
-                    .cpu()
-                    .detach()
-                    .numpy()
-                    .reshape((3, -1)),
-                    axis=0,
-                ),
-                label="Vector Vel",
-            )
-            plt.title(f"Joint idx: {i}")
-            plt.legend()
-            plt.show()
-        print(calc_vel_from_xyz.shape)
-        print(velocity_from_vector.shape)
-        diff = calc_vel_from_xyz - velocity_from_vector
-        print(np.linalg.norm(diff.cpu().detach().numpy().reshape((63, -1)), axis=0))
-
         return 0
 
     def _prior_bpd(self, x_start):

@@ -12,8 +12,11 @@ from tqdm import tqdm
 
 from chick.diffusion import logger
 from chick.diffusion.fp16_util import MixedPrecisionTrainer
-from chick.diffusion.resample import (LossAwareSampler, UniformSampler,
-                                      create_named_schedule_sampler)
+from chick.diffusion.resample import (
+    LossAwareSampler,
+    UniformSampler,
+    create_named_schedule_sampler,
+)
 from chick.model.cfg_sampler import ClassifierFreeSampleModel
 from chick.utils import dist_util
 
@@ -48,7 +51,7 @@ class TrainLoop:
         self.global_batch = self.batch_size  # * dist.get_world_size()
         self.num_steps = args.num_steps
         self.num_epochs = self.num_steps // len(self.data) + 1
-
+        print(f"epochs: {self.num_epochs}")
         self.sync_cuda = torch.cuda.is_available()
 
         self._load_and_sync_parameters()
@@ -312,7 +315,7 @@ class TrainLoop:
         logger.logkv("samples", (self.step + self.resume_step + 1) * self.global_batch)
 
     def ckpt_file_name(self):
-        return f"model{(self.step+self.resume_step):09d}.pt"
+        return f"model{(self.step+self.resume_step):09d}_30_frames.pt"
 
     def save(self):
         def save_checkpoint(params):

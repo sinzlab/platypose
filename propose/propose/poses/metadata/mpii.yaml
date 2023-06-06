@@ -1,0 +1,73 @@
+spine:
+    Hip:
+      id: 6
+      parent_id: -1
+
+    Spine:
+      id: 7
+      parent_id: 6
+
+    Thorax:
+      id: 8
+      parent_id: 7
+
+head:
+    Head:
+      id: 9
+      parent_id: 8
+
+leg_r:
+    RHip:
+      id: 2
+      parent_id: 6
+
+    RKnee:
+      id: 1
+      parent_id: 2
+
+    RFoot:
+      id: 0
+      parent_id: 1
+
+leg_l:
+    LHip:
+      id: 3
+      parent_id: 6
+
+    LKnee:
+      id: 4
+      parent_id: 3
+
+    LFoot:
+      id: 5
+      parent_id: 4
+
+
+arm_l:
+    LShoulder:
+      id: 13
+      parent_id: 8
+
+    LElbow:
+      id: 14
+      parent_id: 13
+
+    LWrist:
+      id: 15
+      parent_id: 14
+
+
+arm_r:
+    RShoulder:
+      id: 12
+      parent_id: 8
+
+    RElbow:
+      id: 11
+      parent_id: 12
+
+    RWrist:
+      id: 10
+      parent_id: 11
+
+
