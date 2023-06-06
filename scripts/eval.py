@@ -34,8 +34,8 @@ if __name__ == "__main__":
     set_random_seed(cfg.seed)
 
     dataset = H36MVideoDataset(
-        path=cfg.root_path + cfg.dataset_path,
-        root_path=cfg.root_path,
+        path=cfg.dataset.full_path,
+        root_path=cfg.dataset.root,
         frames=cfg.model.num_frames,
     )
     dataloader = torch.utils.data.DataLoader(
