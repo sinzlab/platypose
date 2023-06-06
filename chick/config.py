@@ -96,6 +96,7 @@ def get_experiment_config(experiment_name: str = None) -> CN:
     cfg = merge_args(cfg, args)
 
     cfg.device = "cuda" if torch.cuda.is_available() else "cpu"
+    cfg.model.short_name = list(filter(lambda x: len(x), cfg.model.name.split('/')))[-1].split(':')[0]
 
     cfg.freeze()
     return cfg

@@ -38,10 +38,10 @@ if __name__ == "__main__":
     pipe = SkeletonPipeline.pretrain(dataloader, cfg)
 
     # save the model
-    torch.save(pipe.model.state_dict(), f"./output/{cfg.model.name}.pt")
+    torch.save(pipe.model.state_dict(), f"./models/{cfg.model.name}.pt")
     artifact = wandb.Artifact(
-        name={cfg.model.name},
+        name=cfg.model.short_name,
         type="model",
     )
-    artifact.add_file(f"./output/{cfg.model.name}.pt", name="model.pt")
+    artifact.add_file(f"./models/{cfg.model.name}.pt", name="model.pt")
     wandb.run.log_artifact(artifact)
