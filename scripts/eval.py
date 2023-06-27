@@ -90,19 +90,31 @@ if __name__ == "__main__":
 
         # samples = []
         # for frame_idx in range(29):
-        out = pipe.sample(
-            num_samples=cfg.experiment.num_samples,
-            num_frames=cfg.model.num_frames,
-            energy_fn=partial(
-                inpaint_2d_energy, x_2d=input_2D, center=center, camera=camera
-            ),
-            energy_scale=cfg.experiment.energy_scale,
-        )
-        *_, _sample = out  # get the last element of the generator (the real pose)
-        sample = _sample["sample"]
-        # samples.append(sample)
+        stds = torch.ones(1, 1, 17, 2).cuda()
+        stds[:, :, 3] = 1
+        stds[:, :, 16] = 1
 
-        # sample = torch.cat(samples, dim=-1)
+        samples = []
+        for _ in range(cfg.experiment.num_repeats):
+            out = pipe.sample(
+                num_samples=cfg.experiment.num_samples,
+                num_frames=cfg.model.num_frames,
+                num_substeps=cfg.experiment.num_substeps,
+                energy_fn=partial(
+                    monocular_2d_energy, x_2d=input_2D, x_2d_std=stds, center=center, camera=camera
+                ),
+                energy_scale=cfg.experiment.energy_scale,
+            )
+            *_, _sample = out  # get the last element of the generator (the real pose)
+            sample = _sample["sample"].detach()
+            samples.append(sample)
+
+        sample = torch.cat(samples, dim=0)
+
+        gt_3D = gt_3D.cpu()
+        sample = sample.cpu()
+        center = center.cpu()
+        camera.device = "cpu"
 
         sample = sample - center.unsqueeze(0).permute(0, 1, 3, 2)
         sample_2D_proj = camera.proj2D(sample.permute(0, 3, 1, 2))

@@ -11,14 +11,18 @@ Datasets = Literal["h36m"]
 _C = CN()
 
 _C.seed = 1
+_C.device = "cuda"  # Overwritten when config is loaded
 
 _C.dataset = CN()
 _C.dataset.path = "data_3d_h36m.npz"
 _C.dataset.root = "./dataset/"
+_C.dataset.full_path = _C.dataset.root + _C.dataset.path  # Overwritten when config is loaded
 
 _C.experiment = CN()
 _C.experiment.num_samples = 200
 _C.experiment.energy_scale = 30
+_C.experiment.num_substeps = 1
+_C.experiment.num_repeats = 1
 _C.experiment.projection: Projections = "dummy"
 _C.experiment.dataset: Datasets = "h36m"
 _C.experiment.keypoints: Keypoints = "gt"
@@ -26,6 +30,7 @@ _C.experiment.keypoints: Keypoints = "gt"
 _C.model = CN()
 _C.model.num_frames = 1
 _C.model.name = "sinzlab/chick/MDM_H36m_1_frame_50_steps:latest"
+_C.model.short_name = "MDM_H36m_1_frame_50_steps"  # Overwritten when config is loaded
 
 _C.train = CN()
 _C.train.batch_size = 64

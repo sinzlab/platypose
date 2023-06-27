@@ -54,7 +54,7 @@ class SkeletonPipeline(nn.Module):
 
         self.model, self.diffusion = create_model_and_diffusion(self.model_config)
 
-    def sample(self, energy_fn, energy_scale=1, num_samples=1, num_frames=1):
+    def sample(self, energy_fn, energy_scale=1, num_samples=1, num_frames=1, num_substeps=1):
         """
         This function samples from a diffusion model using a given energy function and other optional parameters.
 
@@ -80,6 +80,7 @@ class SkeletonPipeline(nn.Module):
             progress=False,
             energy_fn=energy_fn,
             energy_scale=energy_scale,
+            num_substeps=num_substeps,
         )
 
     @staticmethod

@@ -683,7 +683,7 @@ class Fusion(data.Dataset):
 
 class H36MVideoDataset(Fusion):
     def __init__(
-        self, path, root_path, frames=1, mode: DatasetMode = "eval", config=None
+        self, path, root_path, frames=1, mode: DatasetMode = "eval", config=None, keypoints='gt'
     ):
         self.config = {
             "actions": "*",
@@ -692,7 +692,7 @@ class H36MVideoDataset(Fusion):
             "dataset": "h36m",
             "downsample": 1,
             "frames": frames,
-            "keypoints": "gt",
+            "keypoints": keypoints,
             "out_all": 1,
             "skip": 1,
             "stride": 1,

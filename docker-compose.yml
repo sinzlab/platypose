@@ -23,6 +23,13 @@ services:
     entrypoint: [ "poetry", "run", "python" ]
     env_file:
         - .env
+    volumes:
+      - ./scripts:/scripts
+      - ./data:/data
+      - ./experiments:/experiments
+      - ./output:/output
+      - ./chick:/src/chick
+      - ./:/src
 
   train:
     image: chick
