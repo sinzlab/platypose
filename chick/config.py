@@ -25,7 +25,7 @@ _C.experiment.num_substeps = 1
 _C.experiment.num_repeats = 1
 _C.experiment.projection: Projections = "dummy"
 _C.experiment.dataset: Datasets = "h36m"
-_C.experiment.keypoints: Keypoints = "gt"
+_C.experiment.keypoints: Keypoints = "cpn_ft_h36m_dbb"
 
 _C.model = CN()
 _C.model.num_frames = 1
@@ -43,7 +43,7 @@ parser = argparse.ArgumentParser(description="Experiment settings.")
 parser.add_argument("--dataset", type=str, help="Dataset to use.")
 parser.add_argument("--keypoints", type=str, help="2D detections to use.")
 parser.add_argument("--num_samples", type=int, help="Number of samples.")
-parser.add_argument("--energy_scale", type=int, help="Energy scale.")
+parser.add_argument("--energy_scale", type=float, help="Energy scale.")
 parser.add_argument("--num_frames", type=int, help="Number of frames.")
 parser.add_argument("--model", type=str, help="Model to use.")
 parser.add_argument("--seed", type=int, help="Random seed.")

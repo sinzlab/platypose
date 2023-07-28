@@ -4,7 +4,7 @@ from collections import OrderedDict
 import numpy as np
 import torch
 import wandb
-from propose.poses.human36m import MPIIPose
+from propose.propose.poses.human36m import MPIIPose
 from tqdm import tqdm
 
 from .config import config

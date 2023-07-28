@@ -1,5 +1,5 @@
 import torch
-from neuralpredictors.data.transforms import rescale
+from skimage.transform import rescale
 from torchvision.transforms import Pad
 
 

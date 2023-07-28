@@ -693,6 +693,7 @@ class GaussianDiffusion:
         const_noise=False,
         energy_fn=None,
         energy_scale=1.0,
+        num_substeps=10,
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -725,7 +726,7 @@ class GaussianDiffusion:
 
             indices = tqdm(indices)
 
-        for i in indices:
+        for step, i in enumerate(indices):
             t = th.tensor([i] * shape[0], device=device)
             if randomize_class and "y" in model_kwargs:
                 model_kwargs["y"] = th.randint(
@@ -746,22 +747,31 @@ class GaussianDiffusion:
                 model_kwargs=model_kwargs,
                 const_noise=const_noise,
             )
-            energy = energy_fn(out["pred_xstart"])
 
-            inpaint = True
-            if inpaint:
+            inpaint = False
+            numerical_grad = False
+            if numerical_grad:
+                for _ in range(num_substeps):
+                    update = energy_fn(img)['train']
+                    update = update.unsqueeze(0).unsqueeze(-1) * energy_scale
+                    img = img - update
+
+            elif inpaint:
                 # idx = 6 #leg
                 # idx = 13
                 # skip = out["sample"][..., idx, :, :].clone()
+                energy = energy_fn(out["pred_xstart"])
                 out["sample"][..., [0, 1], :] = energy["input_2D"]
                 # out["sample"][..., idx, :, :] = skip
             else:
-                for _ in range(1):
+                for _ in range(num_substeps):
                     energy = energy_fn(out["sample"])
                     # alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, img.shape)
                     grad_outputs = th.ones_like(energy["train"])
 
+
                     if torch.isnan(energy["train"]).any():
+                        print('is nan in energy')
                         break
 
                     # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
@@ -771,12 +781,14 @@ class GaussianDiffusion:
                         grad_outputs=grad_outputs,
                     )[0]
                     # update = (norm_grad / th.norm(norm_grad) * energy_scale)
+                    # grad = grad / th.norm(grad)
                     update = grad * energy_scale
                     out["sample"] = out["sample"] - update
 
             yield out
             img = out["sample"]
             img.detach_()
+            # gc.collect()
 
     def ddim_sample(
         self,

@@ -31,20 +31,32 @@ class Camera(object):
         :param frames: (optional) the mapping of corresponding frames in the video.
         """
         # check args shapes
-        assert intrinsic_matrix.shape == (3, 3), "intrinsic_matrix must be a 3x3 matrix"
-        assert rotation_matrix.shape == (3, 3), "rotation_matrix must be a 3x3 matrix"
-        assert translation_vector.shape == (
+        assert intrinsic_matrix.shape[-2:] == (3, 3), "intrinsic_matrix must be a 3x3 matrix"
+        assert rotation_matrix.shape[-2:] == (3, 3), "rotation_matrix must be a 3x3 matrix"
+        assert translation_vector.shape[-2:] == (
             1,
             3,
         ), "translation_vector must be a 1x3 vector"
-        assert tangential_distortion.shape == (
+        assert tangential_distortion.shape[-2:] == (
             1,
             2,
         ), "tangential_distortion must be a 1x2 vector"
-        assert radial_distortion.shape in (
+        assert radial_distortion.shape[-2:] in (
             (1, 2),
             (1, 3),
         ), "radial_distortion must be a 1x2 or 1x3 vector"
+
+        # if a batch dimension is present, remove it
+        if intrinsic_matrix.dim() == 3:
+            intrinsic_matrix = intrinsic_matrix.squeeze(0)
+        if rotation_matrix.dim() == 3:
+            rotation_matrix = rotation_matrix.squeeze(0)
+        if translation_vector.dim() == 3:
+            translation_vector = translation_vector.squeeze(0)
+        if tangential_distortion.dim() == 3:
+            tangential_distortion = tangential_distortion.squeeze(0)
+        if radial_distortion.dim() == 3:
+            radial_distortion = radial_distortion.squeeze(0)
 
         self.intrinsic_matrix = intrinsic_matrix
         self.rotation_matrix = rotation_matrix
@@ -77,7 +89,7 @@ class Camera(object):
         return (
             (
                 torch.cat((self.rotation_matrix, self.translation_vector), axis=0)
-                @ self.intrinsic_matrix
+                @ self.intrinsic_matrix.float()
             )
             .float()
             .to(self.device)
@@ -96,10 +108,10 @@ class Camera(object):
             fx, fy, cx, cy, skew = self._unpack_intrinsic_matrix()
 
             points = points.squeeze(1)
-            return torch.stack(
+            return torch.stack([torch.stack(
                 [
                     self._proj2D_martinez(
-                        pts,
+                        p,
                         self.rotation_matrix,
                         self.translation_vector.T,
                         torch.tensor([[fx], [fy]]),
@@ -107,9 +119,9 @@ class Camera(object):
                         self.radial_distortion.T,
                         self.tangential_distortion.T,
                     )
-                    for pts in points
+                    for p in pts
                 ]
-            ).unsqueeze(1)
+            ) for pts in points])
 
         assert points.shape[-1] == 3
 
@@ -169,20 +181,23 @@ class Camera(object):
         P = P.to(self.device)
 
         N = P.shape[0]
-        X = R @ (P.T - T)  # rotate and translate
-        XX = X[:2, :] / X[2, :]  # 2x16
-        r2 = XX[0, :] ** 2 + XX[1, :] ** 2  # 16,
+        X = P
+        # X = R @ (P.T - T)  # rotate and translate
+        XX = X[:2, :] # / X[2, :]  # 2x16
+        # r2 = XX[0, :] ** 2 + XX[1, :] ** 2  # 16,
+        #
+        # a = torch.tile(k, (1, N))
+        # b = torch.stack([r2, r2**2, r2**3]).to(self.device)  # 3x16
+        # radial = 1 + torch.einsum("ij,ij->j", a, b)  # 16,
+        # tan = p[0] * XX[1, :] + p[1] * XX[0, :]  # 16,
+        #
+        # tm = torch.outer(torch.stack([p[1], p[0]]).reshape(-1), r2)  # 2x16
+        #
+        # XXX = XX * torch.tile(radial + tan, (2, 1)) + tm  # 2x16
+        XXX = XX
 
-        a = torch.tile(k, (1, N))
-        b = torch.stack([r2, r2**2, r2**3]).to(self.device)  # 3x16
-        radial = 1 + torch.einsum("ij,ij->j", a, b)  # 16,
-        tan = p[0] * XX[1, :] + p[1] * XX[0, :]  # 16,
-
-        tm = torch.outer(torch.stack([p[1], p[0]]).reshape(-1), r2)  # 2x16
-
-        XXX = XX * torch.tile(radial + tan, (2, 1)) + tm  # 2x16
-
-        Proj = (f * XXX) + c  # 2x16
+        # Proj = (f * XXX) + c  # 2x16
+        Proj = XXX
         Proj = Proj.T
 
         return Proj

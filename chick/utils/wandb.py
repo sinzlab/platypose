@@ -9,7 +9,7 @@ def download_wandb_artefact(artifact_name):
     if wandb.run:
         wandb.run.use_artifact(artifact, type="model")
 
-    dirs = "/".join(artifact_name.split("/")[:-1])
+    dirs = "/".join(artifact_name.split("/")[:-1]) + "/"
     artifact_dir = artifact.download("./models/" + dirs)
     model_name = artifact_name.split("/")[-1]
 

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "platypose"
+name = "chick"
 version = "0.1.0"
 description = "Diffusion based pose lifting"
 authors = ["paul <ppierzc@gmail.copm>"]
@@ -66,6 +66,7 @@ urllib3 = "^2.0.2"
 wcwidth = "^0.2.6"
 lipstick = "^0.0.7"
 wandb = "^0.15.3"
+h5py = "^3.4.0"
 
 [build-system]
 requires = ["poetry-core"]

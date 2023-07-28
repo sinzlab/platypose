@@ -84,7 +84,7 @@ class MPIIPose(YamlPose):
         pose_matrix = np.insert(pose_matrix, 9, 0, axis=1)
 
         pose = Human36mPose(pose_matrix)
-        pose.occluded_markers = self.occluded_markers[0, MPII_2_H36M, 0]
-        pose.occluded_markers = np.insert(pose.occluded_markers, 9, True, axis=0)
+        # pose.occluded_markers = self.occluded_markers[0, MPII_2_H36M, 0]
+        # pose.occluded_markers = np.insert(pose.occluded_markers, 9, True, axis=0)
 
         return pose

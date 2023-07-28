@@ -5,6 +5,7 @@ model:
   name: "sinzlab/chick/MDM_H36m_30_frames_50_steps:latest"
 
 experiment:
-  num_samples: 50
-  energy_scale: 30
-  projection: "dummy"
+  num_samples: 25
+  num_substeps: 10
+  energy_scale: 10
+  projection: "camera"

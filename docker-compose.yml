@@ -44,11 +44,25 @@ services:
     env_file:
         - .env
 
+  wehrbein:
+    image: chick
+    volumes:
+      - ./scripts:/scripts
+      - ./data:/data
+      - ./experiments:/experiments
+      - ./output:/output
+      - ./chick:/src/chick
+      - ./:/src
+    entrypoint: [ "poetry", "run", "python", "/src/scripts/wehrbein.py" ]
+    env_file:
+      - .env
+
   eval:
     image: chick
     volumes:
       - ./scripts:/scripts
       - ./data:/data
+      - ./dataset:/dataset
       - ./experiments:/experiments
       - ./output:/output
       - ./models:/src/models
