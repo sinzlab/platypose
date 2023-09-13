@@ -21,11 +21,12 @@ _C.dataset.full_path = _C.dataset.root + _C.dataset.path  # Overwritten when con
 _C.experiment = CN()
 _C.experiment.num_samples = 200
 _C.experiment.energy_scale = 30
+_C.experiment.energy_fn = "monocular"
 _C.experiment.num_substeps = 1
 _C.experiment.num_repeats = 1
 _C.experiment.projection: Projections = "dummy"
 _C.experiment.dataset: Datasets = "h36m"
-_C.experiment.keypoints: Keypoints = "cpn_ft_h36m_dbb"
+_C.experiment.keypoints: Keypoints = "gt"
 
 _C.model = CN()
 _C.model.num_frames = 1
@@ -37,6 +38,7 @@ _C.train.batch_size = 64
 _C.train.num_steps = 600_000
 _C.train.lr = 1e-4
 _C.train.weight_decay = 0.0
+_C.train.augment_length = False
 
 
 parser = argparse.ArgumentParser(description="Experiment settings.")

@@ -498,6 +498,7 @@ class Fusion(data.Dataset):
                 joints_left=self.joints_left,
                 joints_right=self.joints_right,
                 out_all=opt.out_all,
+                augment=True,
             )
             print("INFO: Training on {} frames".format(self.generator.num_frames()))
         else:

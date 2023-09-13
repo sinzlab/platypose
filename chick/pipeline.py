@@ -8,6 +8,7 @@ from chick.diffusion.fp16_util import MixedPrecisionTrainer
 from chick.diffusion.resample import UniformSampler
 from chick.utils.model_util import create_model_and_diffusion
 from chick.utils.wandb import download_wandb_artefact
+from chick.platform import platform
 
 
 class SkeletonPipeline(nn.Module):
@@ -142,20 +143,19 @@ class SkeletonPipeline(nn.Module):
         num_epochs = cfg.train.num_steps // len(dataloader) + 1
         for epoch in range(num_epochs):
             print(f"Starting epoch {epoch}")
+            pbar = tqdm(dataloader)
             for (
-                batch_cam,
-                gt_3D,
-                input_2D,
-                action,
-                subject,
-                scale,
-                bb_box,
-                cam_ind,
-            ) in tqdm(dataloader):
+                cam, gt_3D, input_2D_update, action, subject, scale, bb_box, cam_ind, start_3d
+            ) in pbar:
                 gt_3D[:, :, 0] = 0  # set the root to 0
 
                 batch = gt_3D.permute(0, 2, 3, 1)
                 batch = batch.to(cfg.device)
+
+                # randomly clip the batch to different lengths
+                if cfg.train.augment_length:
+                    length = torch.randint(1, batch.shape[-1], (1,)).item()
+                    batch = batch[..., :length]
 
                 cond = {
                     "y": {
@@ -181,6 +181,14 @@ class SkeletonPipeline(nn.Module):
                     )
 
                     loss = (losses["loss"] * weights).mean()
+
+                    platform.log(
+                        {
+                            "loss": loss.item(),
+                        }
+                    )
+
+                    pbar.set_description("loss: %.3f" % loss.item())
 
                     mp_trainer.backward(loss)
 

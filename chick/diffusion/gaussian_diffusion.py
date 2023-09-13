@@ -286,7 +286,7 @@ class GaussianDiffusion:
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def p_mean_variance(
-        self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
+        self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None, energy_fn=None, energy_scale=1.0
     ):
         """
         Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
@@ -352,11 +352,6 @@ class GaussianDiffusion:
                     self.posterior_log_variance_clipped,
                 ),
             }[self.model_var_type]
-            # print('model_variance', model_variance)
-            # print('model_log_variance',model_log_variance)
-            # print('self.posterior_variance', self.posterior_variance)
-            # print('self.posterior_log_variance_clipped', self.posterior_log_variance_clipped)
-            # print('self.model_var_type', self.model_var_type)
 
             model_variance = _extract_into_tensor(model_variance, t, x.shape)
             model_log_variance = _extract_into_tensor(model_log_variance, t, x.shape)
@@ -365,7 +360,6 @@ class GaussianDiffusion:
             if denoised_fn is not None:
                 x = denoised_fn(x)
             if clip_denoised:
-                # print('clip_denoised', clip_denoised)
                 return x.clamp(-1, 1)
             return x
 
@@ -384,6 +378,28 @@ class GaussianDiffusion:
                 pred_xstart = process_xstart(
                     self._predict_xstart_from_eps(x_t=x, t=t, eps=model_output)
                 )
+
+            ### Energy applied on the pred_xstart before it is noised to x_sample.
+            for _ in range(5):
+                energy = energy_fn(pred_xstart)
+                grad_outputs = th.ones_like(energy["train"])
+
+
+                if torch.isnan(energy["train"]).any():
+                    print('is nan in energy')
+                    break
+
+                # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
+                grad = th.autograd.grad(
+                    outputs=energy["train"],
+                    inputs=pred_xstart,
+                    grad_outputs=grad_outputs,
+                )[0]
+
+                update = grad * energy_scale
+                pred_xstart = pred_xstart - update
+            ###
+
             model_mean, _, _ = self.q_posterior_mean_variance(
                 x_start=pred_xstart, x_t=x, t=t
             )
@@ -514,6 +530,8 @@ class GaussianDiffusion:
         cond_fn=None,
         model_kwargs=None,
         const_noise=False,
+            energy_fn=None,
+            energy_scale=1.0,
     ):
         """
         Sample x_{t-1} from the model at the given timestep.
@@ -539,9 +557,14 @@ class GaussianDiffusion:
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
             model_kwargs=model_kwargs,
+            energy_fn=energy_fn,
+            energy_scale=energy_scale,
         )
+
+
+
         noise = th.randn_like(x)
-        # print('const_noise', const_noise)
+
         if const_noise:
             noise = noise[[0]].repeat(x.shape[0], 1, 1, 1)
 
@@ -552,9 +575,7 @@ class GaussianDiffusion:
             out["mean"] = self.condition_mean(
                 cond_fn, out, x, t, model_kwargs=model_kwargs
             )
-        # print('mean', out["mean"].shape, out["mean"])
-        # print('log_variance', out["log_variance"].shape, out["log_variance"])
-        # print('nonzero_mask', nonzero_mask.shape, nonzero_mask)
+
         sample = out["mean"] + nonzero_mask * th.exp(0.5 * out["log_variance"]) * noise
         return {"sample": sample, "pred_xstart": out["pred_xstart"]}
 
@@ -647,8 +668,6 @@ class GaussianDiffusion:
         final = None
         if dump_steps is not None:
             dump = []
-
-        from tqdm import tqdm
 
         for i, sample in enumerate(
             self.p_sample_loop_progressive(
@@ -746,44 +765,9 @@ class GaussianDiffusion:
                 cond_fn=cond_fn,
                 model_kwargs=model_kwargs,
                 const_noise=const_noise,
+                energy_fn=energy_fn,
+                energy_scale=energy_scale,
             )
-
-            inpaint = False
-            numerical_grad = False
-            if numerical_grad:
-                for _ in range(num_substeps):
-                    update = energy_fn(img)['train']
-                    update = update.unsqueeze(0).unsqueeze(-1) * energy_scale
-                    img = img - update
-
-            elif inpaint:
-                # idx = 6 #leg
-                # idx = 13
-                # skip = out["sample"][..., idx, :, :].clone()
-                energy = energy_fn(out["pred_xstart"])
-                out["sample"][..., [0, 1], :] = energy["input_2D"]
-                # out["sample"][..., idx, :, :] = skip
-            else:
-                for _ in range(num_substeps):
-                    energy = energy_fn(out["sample"])
-                    # alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, img.shape)
-                    grad_outputs = th.ones_like(energy["train"])
-
-
-                    if torch.isnan(energy["train"]).any():
-                        print('is nan in energy')
-                        break
-
-                    # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
-                    grad = th.autograd.grad(
-                        outputs=energy["train"],
-                        inputs=out["sample"],
-                        grad_outputs=grad_outputs,
-                    )[0]
-                    # update = (norm_grad / th.norm(norm_grad) * energy_scale)
-                    # grad = grad / th.norm(grad)
-                    update = grad * energy_scale
-                    out["sample"] = out["sample"] - update
 
             yield out
             img = out["sample"]
