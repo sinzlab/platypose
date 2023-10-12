@@ -62,7 +62,7 @@ class MDM(nn.Module):
         self.clip_dim = clip_dim
         self.action_emb = kargs.get("action_emb", None)
 
-        self.input_feats = self.njoints * self.nfeats
+        self.input_feats = 51  # 166 #self.njoints * self.nfeats
 
         self.normalize_output = kargs.get("normalize_encoder_output", False)
 
@@ -78,7 +78,7 @@ class MDM(nn.Module):
         self.sequence_pos_encoder = PositionalEncoding(self.latent_dim, self.dropout)
         self.emb_trans_dec = emb_trans_dec
 
-        # self.skeleton_encoder = SkeletonEncoder(latent_dim=self.latent_dim)
+        self.skeleton_encoder = SkeletonEncoder(latent_dim=self.latent_dim)
 
         if self.arch == "trans_enc":
             seqTransEncoderLayer = nn.TransformerEncoderLayer(
@@ -175,7 +175,7 @@ class MDM(nn.Module):
         x: [batch_size, njoints, nfeats, max_frames], denoted x_t in the paper
         timesteps: [batch_size] (int)
         """
-        bs, njoints, nfeats, nframes = x.shape
+        bs, nframes, nfeats = x.shape
         emb = self.embed_timestep(timesteps)  # [1, bs, d]
 
         force_mask = y.get("uncond", False)
@@ -189,16 +189,16 @@ class MDM(nn.Module):
             enc_skeleton = self.skeleton_encoder(y["skeleton"])
             emb = self.mask_cond(enc_skeleton, force_mask=force_mask) + emb
 
-        if self.arch == "gru":
-            x_reshaped = x.reshape(bs, njoints * nfeats, 1, nframes)
-            emb_gru = emb.repeat(nframes, 1, 1)  # [#frames, bs, d]
-            emb_gru = emb_gru.permute(1, 2, 0)  # [bs, d, #frames]
-            emb_gru = emb_gru.reshape(
-                bs, self.latent_dim, 1, nframes
-            )  # [bs, d, 1, #frames]
-            x = torch.cat(
-                (x_reshaped, emb_gru), axis=1
-            )  # [bs, d+joints*feat, 1, #frames]
+        # if self.arch == "gru":
+        #     x_reshaped = x.reshape(bs, njoints * nfeats, 1, nframes)
+        #     emb_gru = emb.repeat(nframes, 1, 1)  # [#frames, bs, d]
+        #     emb_gru = emb_gru.permute(1, 2, 0)  # [bs, d, #frames]
+        #     emb_gru = emb_gru.reshape(
+        #         bs, self.latent_dim, 1, nframes
+        #     )  # [bs, d, 1, #frames]
+        #     x = torch.cat(
+        #         (x_reshaped, emb_gru), axis=1
+        #     )  # [bs, d+joints*feat, 1, #frames]
 
         x = self.input_process(x)
 
@@ -206,6 +206,18 @@ class MDM(nn.Module):
             # adding the timestep embed
             xseq = torch.cat((emb, x), axis=0)  # [seqlen+1, bs, d]
             xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d]
+
+            # if in train mode
+            # if self.training:
+            #     mask_prob = 0.9 # rate at which the mask is applied otherwise full sequence is used
+            #
+            #     if torch.rand(1) < mask_prob and xseq.shape[0] > 8:
+            #         # block masking of xseq, set random block lengths to 0
+            #         maskseq_length = torch.randint(low=int(xseq.shape[0] * 0.7), high=int(xseq.shape[0] * 0.9), size=(1,)).item()
+            #         masksq_start = torch.randint(low=1, high=xseq.shape[0] - maskseq_length, size=(1,)).item()
+            #
+            #         xseq[masksq_start:masksq_start+maskseq_length] = 0
+
             output = self.seqTransEncoder(xseq)[
                 1:
             ]  # , src_key_padding_mask=~maskseq)  # [seqlen, bs, d]
@@ -235,9 +247,9 @@ class MDM(nn.Module):
             xseq = self.sequence_pos_encoder(xseq)  # [seqlen, bs, d]
             output, _ = self.gru(xseq)
 
-        output = self.output_process(output)[
-            ..., -nframes:
-        ]  # [bs, njoints, nfeats, nframes]
+        output = self.output_process(output)
+
+        output = output[:, -nframes:]  # [bs, njoints, nfeats, nframes]
 
         return output
 
@@ -299,8 +311,10 @@ class InputProcess(nn.Module):
             self.velEmbedding = nn.Linear(self.input_feats, self.latent_dim)
 
     def forward(self, x):
-        bs, njoints, nfeats, nframes = x.shape
-        x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints * nfeats)
+        # (bs, nframes, nfeats)
+        # bs, njoints, nfeats, nframes = x.shape
+        # x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints * nfeats)
+        x = x.permute((1, 0, 2))
 
         if self.data_rep in ["rot6d", "xyz", "hml_vec", "h36m"]:
             x = self.poseEmbedding(x)  # [seqlen, bs, d]
@@ -339,8 +353,11 @@ class OutputProcess(nn.Module):
             output = torch.cat((first_pose, vel), axis=0)  # [seqlen, bs, 150]
         else:
             raise ValueError
-        output = output.reshape(nframes, bs, self.njoints, self.nfeats)
-        output = output.permute(1, 2, 3, 0)  # [bs, njoints, nfeats, nframes]
+        output = output.permute(
+            (1, 0, 2)
+        )  # (nframes, bs, njoints * nfeats) -> (bs, nframes, nfeats)
+        # output = output.reshape(nframes, bs, self.njoints, self.nfeats)
+        # output = output.permute(1, 2, 3, 0)  # [bs, njoints, nfeats, nframes]
         return output
 
 

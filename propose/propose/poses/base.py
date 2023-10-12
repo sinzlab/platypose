@@ -31,7 +31,10 @@ class BasePose(ABC):
             if len(self.pose_matrix.shape) == 3:
                 self.occluded_markers = [False] * self.pose_matrix.shape[1]
 
-        self.__array_struct__ = self.pose_matrix.__array_struct__
+        try:
+            self.__array_struct__ = self.pose_matrix.__array_struct__
+        except AttributeError:
+            pass
 
         self.set_adjacency_matrix()
 

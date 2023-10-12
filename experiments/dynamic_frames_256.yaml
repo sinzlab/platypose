@@ -2,13 +2,19 @@ seed: 1
 
 model:
   num_frames: 256
-  name: "sinzlab/chick/MDM_H36m_256_frames_50_steps:latest"
+  name: "sinzlab/chick/MDM_H36m_256_frames_50_steps:v2"
+
+train:
+  augment_length: True
+
+dataset:
+  path: "data_3d_h36m.npz"
 
 experiment:
   num_samples: 5
   num_substeps: 20
   num_repeats: 10
   energy_scale: 30
-  energy_fn: "monocular"
+  energy_fn: "inpaint_3d"
   projection: "camera"
   keypoints: "gt"

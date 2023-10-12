@@ -680,12 +680,28 @@ class Fusion(data.Dataset):
 
         scale = np.float64(1.0)
 
-        return cam, gt_3D, input_2D_update, action, subject, scale, bb_box, cam_ind, start_3d
+        return (
+            cam,
+            gt_3D,
+            input_2D_update,
+            action,
+            subject,
+            scale,
+            bb_box,
+            cam_ind,
+            start_3d,
+        )
 
 
 class H36MVideoDataset(Fusion):
     def __init__(
-        self, path, root_path, frames=1, mode: DatasetMode = "eval", config=None, keypoints='gt'
+        self,
+        path,
+        root_path,
+        frames=1,
+        mode: DatasetMode = "eval",
+        config=None,
+        keypoints="gt",
     ):
         self.config = {
             "actions": "*",

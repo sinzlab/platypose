@@ -1,6 +1,6 @@
 from chick.diffusion import gaussian_diffusion as gd
 from chick.diffusion.respace import SpacedDiffusion, space_timesteps
-from chick.model.lifting import MDM
+from chick.model.overcomplete import MDM
 
 
 def load_model_wo_clip(model, state_dict):

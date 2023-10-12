@@ -4,8 +4,9 @@ from collections import OrderedDict
 import numpy as np
 import torch
 import wandb
-from propose.propose.poses.human36m import MPIIPose
 from tqdm import tqdm
+
+from propose.propose.poses.human36m import MPIIPose
 
 from .config import config
 from .models.pose_hrnet import PoseHighResolutionNet

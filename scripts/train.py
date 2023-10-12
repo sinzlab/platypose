@@ -7,7 +7,7 @@ import wandb
 sys.path.append("/src")
 
 from chick.config import cfg_to_dict, get_experiment_config
-from chick.dataset.h36m import H36MVideoDataset
+from chick.dataset.temporal import Human36mDataset
 from chick.pipeline import SkeletonPipeline
 from chick.platform import platform
 from chick.utils.reproducibility import set_random_seed
@@ -20,12 +20,17 @@ if __name__ == "__main__":
 
     set_random_seed(cfg.seed)
 
-    dataset = H36MVideoDataset(
-        path=cfg.dataset.full_path,
-        root_path=cfg.dataset.root,
-        frames=cfg.model.num_frames,
-        mode="train",
+    # dataset = H36MVideoDataset(
+    #     path=cfg.dataset.full_path,
+    #     root_path=cfg.dataset.root,
+    #     frames=cfg.model.num_frames,
+    #     mode="train",
+    # )
+
+    dataset = Human36mDataset(
+        path=cfg.dataset.full_path, augment=True, train=True, stride=128
     )
+
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=cfg.train.batch_size,

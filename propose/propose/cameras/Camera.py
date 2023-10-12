@@ -31,8 +31,14 @@ class Camera(object):
         :param frames: (optional) the mapping of corresponding frames in the video.
         """
         # check args shapes
-        assert intrinsic_matrix.shape[-2:] == (3, 3), "intrinsic_matrix must be a 3x3 matrix"
-        assert rotation_matrix.shape[-2:] == (3, 3), "rotation_matrix must be a 3x3 matrix"
+        assert intrinsic_matrix.shape[-2:] == (
+            3,
+            3,
+        ), "intrinsic_matrix must be a 3x3 matrix"
+        assert rotation_matrix.shape[-2:] == (
+            3,
+            3,
+        ), "rotation_matrix must be a 3x3 matrix"
         assert translation_vector.shape[-2:] == (
             1,
             3,
@@ -88,7 +94,7 @@ class Camera(object):
         """
         return (
             (
-                torch.cat((self.rotation_matrix, self.translation_vector), axis=0)
+                torch.cat((torch.eye(3), torch.zeros(3).unsqueeze(0)), axis=0)
                 @ self.intrinsic_matrix.float()
             )
             .float()
@@ -108,24 +114,34 @@ class Camera(object):
             fx, fy, cx, cy, skew = self._unpack_intrinsic_matrix()
 
             points = points.squeeze(1)
-            return torch.stack([torch.stack(
+            return torch.stack(
                 [
-                    self._proj2D_martinez(
-                        p,
-                        self.rotation_matrix,
-                        self.translation_vector.T,
-                        torch.tensor([[fx], [fy]]),
-                        torch.tensor([[cx], [cy]]),
-                        self.radial_distortion.T,
-                        self.tangential_distortion.T,
+                    torch.stack(
+                        [
+                            self._proj2D_martinez(
+                                p,
+                                self.rotation_matrix,
+                                self.translation_vector.T,
+                                torch.tensor([[fx], [fy]]),
+                                torch.tensor([[cx], [cy]]),
+                                self.radial_distortion.T,
+                                self.tangential_distortion.T,
+                            )
+                            for p in pts
+                        ]
                     )
-                    for p in pts
+                    for pts in points
                 ]
-            ) for pts in points])
+            )
 
         assert points.shape[-1] == 3
 
+        R_inv = torch.inverse(self.rotation_matrix).to(self.device)
+        T_inv = -self.translation_vector.to(self.device)
+
         camera_matrix = self.camera_matrix()
+
+        points = torch.matmul(points + T_inv, R_inv)
 
         extended_points = torch.cat(
             (points, torch.ones((*points.shape[:-1], 1), device=self.device)), axis=-1
@@ -183,7 +199,7 @@ class Camera(object):
         N = P.shape[0]
         X = P
         # X = R @ (P.T - T)  # rotate and translate
-        XX = X[:2, :] # / X[2, :]  # 2x16
+        XX = X[:2, :]  # / X[2, :]  # 2x16
         # r2 = XX[0, :] ** 2 + XX[1, :] ** 2  # 16,
         #
         # a = torch.tile(k, (1, N))
@@ -422,5 +438,8 @@ class Camera(object):
 
 
 class DummyCamera(Camera):
+    def __init__(self, *args, **kwargs):
+        pass
+
     def proj2D(self, points: Point3D, distort: bool = True) -> Point2D:
         return points[..., [0, 1]]

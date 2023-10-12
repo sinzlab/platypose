@@ -1,8 +1,8 @@
 seed: 1
 
 model:
-  num_frames: 29
-  name: "sinzlab/chick/MDM_H36m_30_frames_50_steps:latest"
+  num_frames: 32
+  name: "sinzlab/chick/MDM_H36m_32_frames_50_steps:latest"
 
 experiment:
   num_samples: 25

@@ -1,10 +1,11 @@
+from collections import OrderedDict
+
 import numpy as np
 import torch
-from collections import OrderedDict
+from tqdm import tqdm
 
 from propose.propose.models.detectors.hrnet import HRNet
 from propose.propose.models.detectors.hrnet.config import config
-from tqdm import tqdm
 
 config_file = "./models/w32_256x256_adam_lr1e-3.yaml"
 
@@ -44,9 +45,9 @@ def get_heatmaps(image: torch.Tensor, model: HRNet):
         return heatmaps
 
 
-if __name__ == '__main__':
-    from PIL import Image
+if __name__ == "__main__":
     import matplotlib.pyplot as plt
+    from PIL import Image
     from torchvision import transforms
 
     # image = Image.open("./Walking.58860488.764.png")
@@ -96,10 +97,3 @@ if __name__ == '__main__':
     #
     # print(output)
     # print(features)
-
-
-
-
-
-
-

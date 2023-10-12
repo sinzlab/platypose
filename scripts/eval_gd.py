@@ -82,17 +82,15 @@ if __name__ == "__main__":
         # x_2d_2 = cameras[1].proj2D(x_3d.cuda()).cuda()
         # print('project 3D to 2D')
         x_2d = [cam.proj2D(x_3d.cuda()).cuda() for cam in cameras]
-
         # x_2d_1 = cameras[1].proj2D(x_3d.cuda()).cuda()
         # x_2d_2 = cameras[2].proj2D(x_3d.cuda()).cuda()
         # x_2d_3 = cameras[3].proj2D(x_3d.cuda()).cuda()
         #
         # import matplotlib.pyplot as plt
         # plt.figure()
-        # ax = plt.subplot(1, 1, 1)
-        # Human36mPose(x_2d[0][0, 0].cpu().numpy()).plot(ax=ax)
+        # ax = plt.subplot(1, 4, 1)
+        # Human36mPose(x_2d_0[0, 0].cpu().numpy()).plot(ax=ax)
         # plt.axis('equal')
-
         #
         # ax = plt.subplot(1, 4, 2)
         # Human36mPose(x_2d_1[0, 0].cpu().numpy()).plot(ax=ax)
@@ -134,27 +132,37 @@ if __name__ == "__main__":
         #         exit()
 
         # print('beginning to sample')
-        samples = []
-        for _ in range(cfg.experiment.num_repeats):
-            out = pipe.sample(
-                num_samples=cfg.experiment.num_samples,
-                num_frames=cfg.model.num_frames,
-                num_substeps=cfg.experiment.num_substeps,
-                energy_fn=partial(
-                    energies[cfg.experiment.energy_fn],
-                    x_3d=x_3d,
-                    x_2d=x_2d,
-                    center=center,
-                    camera=cameras,
-                ),
-                energy_scale=cfg.experiment.energy_scale,
-            )
-            *_, _sample = out  # get the last element of the generator (the real pose)
-            sample = _sample["sample"].detach().cpu()
-            samples.append(sample)
+
+        sample = torch.nn.Parameter(torch.zeros(1, cfg.model.num_frames, 17, 3).cuda())
+        optimizer = torch.optim.Adam([sample], lr=0.1)
+
+        for _ in range(100):
+            optimizer.zero_grad()
+            loss = energies[cfg.experiment.energy_fn](sample, x_2d, cameras)["train"]
+            loss.backward()
+            optimizer.step()
+            # print(loss)
+
+        sample = sample.detach().cpu().numpy()
+
+        # for _ in range(cfg.experiment.num_repeats):
+        #     out = pipe.sample(
+        #         num_samples=cfg.experiment.num_samples,
+        #         num_frames=cfg.model.num_frames,
+        #         num_substeps=cfg.experiment.num_substeps,
+        #         energy_fn=partial(
+        #             energies[cfg.experiment.energy_fn],
+        #             x_3d=x_3d,
+        #             x_2d=x_2d, center=center, camera=cameras
+        #         ),
+        #         energy_scale=cfg.experiment.energy_scale,
+        #     )
+        #     *_, _sample = out  # get the last element of the generator (the real pose)
+        #     sample = _sample["sample"].detach().cpu()
+        #     samples.append(sample)
 
         # print('concatenating samples')
-        sample = torch.cat(samples, dim=0)
+        # sample = torch.cat(samples, dim=0)
         #
         # sample = sample[..., :17 * 3].reshape(cfg.experiment.num_samples * cfg.experiment.num_repeats, cfg.model.num_frames, 17, 3)
         #
@@ -171,13 +179,13 @@ if __name__ == "__main__":
                 sample.shape[0], sample.shape[1], 17, 3
             )[..., :3]
 
-        sample = full_to_position(sample).cpu().numpy()
+        # sample = full_to_position(sample).cpu().numpy()
 
         # reapply the center
-        # center = sample[:, :, :1, :].copy()
-        # sample[:, :, 0, :] = 0
-        # # center = center.cpu().numpy()
-        # sample = sample + center
+        center = sample[:, :, :1, :].copy()
+        sample[:, :, 0, :] = 0
+        # center = center.cpu().numpy()
+        sample = sample + center
 
         # x_3d = x_3d.cpu().numpy()
         # center = x_3d[:, :, :1, :].copy()
@@ -185,17 +193,17 @@ if __name__ == "__main__":
         # x_3d = x_3d + center
 
         x_3d = x_3d.cpu().numpy()
-        # center = x_3d[:, :, :1, :].copy()
-        # x_3d[:, :, 0, :] = 0
-        # x_3d = x_3d + center
+        center = x_3d[:, :, :1, :].copy()
+        x_3d[:, :, 0, :] = 0
+        x_3d = x_3d + center
 
         # Remove trajectory
         # x_3d = x_3d - x_3d[:, :, 0:1, :]
         # sample = sample - sample[:, :, 0:1, :]
 
         # Align the first frame
-        # x_3d = x_3d - x_3d[:, 0:1, 0:1, :]
-        # sample = sample - sample[:, 0:1, 0:1, :]
+        x_3d = x_3d - x_3d[:, 0:1, 0:1, :]
+        sample = sample - sample[:, 0:1, 0:1, :]
 
         m = mpjpe(x_3d * 1000, sample * 1000, mean=False).mean(-1).mean(-1)
         minMPJPES.append(m.min())

@@ -14,9 +14,12 @@ _C.seed = 1
 _C.device = "cuda"  # Overwritten when config is loaded
 
 _C.dataset = CN()
-_C.dataset.path = "data_3d_h36m.npz"
+_C.dataset.path = "dataset.pkl"  # "data_3d_h36m.npz"
+# _C.dataset.path = "data_3d_h36m.npz"
 _C.dataset.root = "./dataset/"
-_C.dataset.full_path = _C.dataset.root + _C.dataset.path  # Overwritten when config is loaded
+_C.dataset.full_path = (
+    _C.dataset.root + _C.dataset.path
+)  # Overwritten when config is loaded
 
 _C.experiment = CN()
 _C.experiment.num_samples = 200
@@ -27,6 +30,7 @@ _C.experiment.num_repeats = 1
 _C.experiment.projection: Projections = "dummy"
 _C.experiment.dataset: Datasets = "h36m"
 _C.experiment.keypoints: Keypoints = "gt"
+_C.experiment.num_cameras = 1
 
 _C.model = CN()
 _C.model.num_frames = 1
@@ -105,7 +109,9 @@ def get_experiment_config(experiment_name: str = None) -> CN:
     cfg = merge_args(cfg, args)
 
     cfg.device = "cuda" if torch.cuda.is_available() else "cpu"
-    cfg.model.short_name = list(filter(lambda x: len(x), cfg.model.name.split('/')))[-1].split(':')[0]
+    cfg.model.short_name = list(filter(lambda x: len(x), cfg.model.name.split("/")))[
+        -1
+    ].split(":")[0]
     cfg.dataset.full_path = cfg.dataset.root + cfg.dataset.path
 
     cfg.freeze()

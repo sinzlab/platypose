@@ -16,6 +16,7 @@ import torch as th
 
 from chick.diffusion.losses import discretized_gaussian_log_likelihood, normal_kl
 from chick.diffusion.nn import mean_flat, sum_flat
+from propose.propose.poses.human36m import Human36mPose
 
 
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps, scale_betas=1.0):
@@ -215,12 +216,12 @@ class GaussianDiffusion:
         # assuming mask.shape == bs, 1, 1, seqlen
         loss = self.l2_loss(a, b)
         loss = sum_flat(loss)  # gives \sigma_euclidean over unmasked elements
-        n_entries = a.shape[1] * a.shape[2]
-        non_zero_elements = sum_flat(mask) * n_entries
+        n_entries = a.shape[0] * a.shape[1] * a.shape[2]
+        # non_zero_elements = sum_flat(mask) * n_entries
         # print('mask', mask.shape)
         # print('non_zero_elements', non_zero_elements)
         # print('loss', loss)
-        mse_loss_val = loss / non_zero_elements
+        mse_loss_val = loss / n_entries  # / non_zero_elements
         # print('mse_loss_val', mse_loss_val)
         return mse_loss_val
 
@@ -286,7 +287,16 @@ class GaussianDiffusion:
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def p_mean_variance(
-        self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None, energy_fn=None, energy_scale=1.0
+        self,
+        model,
+        x,
+        t,
+        clip_denoised=True,
+        denoised_fn=None,
+        model_kwargs=None,
+        energy_fn=None,
+        energy_scale=1.0,
+        num_substeps=5,
     ):
         """
         Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
@@ -380,13 +390,17 @@ class GaussianDiffusion:
                 )
 
             ### Energy applied on the pred_xstart before it is noised to x_sample.
-            for _ in range(5):
+            # energy = energy_fn(pred_xstart)
+            # energy["train"][..., 1:4, :, :] = pred_xstart[..., 1:4, :, :]
+            # pred_xstart = energy["train"]
+            # pred_xstart[..., :64, :] = energy["train"][..., :64, :]
+            # pred_xstart[..., -64:, :] = energy["train"][..., -64:, :]
+            for _ in range(num_substeps):
                 energy = energy_fn(pred_xstart)
                 grad_outputs = th.ones_like(energy["train"])
 
-
                 if torch.isnan(energy["train"]).any():
-                    print('is nan in energy')
+                    print("is nan in energy")
                     break
 
                 # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
@@ -530,8 +544,9 @@ class GaussianDiffusion:
         cond_fn=None,
         model_kwargs=None,
         const_noise=False,
-            energy_fn=None,
-            energy_scale=1.0,
+        energy_fn=None,
+        energy_scale=1.0,
+        num_substeps=5,
     ):
         """
         Sample x_{t-1} from the model at the given timestep.
@@ -559,9 +574,8 @@ class GaussianDiffusion:
             model_kwargs=model_kwargs,
             energy_fn=energy_fn,
             energy_scale=energy_scale,
+            num_substeps=num_substeps,
         )
-
-
 
         noise = th.randn_like(x)
 
@@ -754,6 +768,7 @@ class GaussianDiffusion:
                     size=model_kwargs["y"].shape,
                     device=model_kwargs["y"].device,
                 )
+
             sample_fn = self.p_sample_with_grad if cond_fn_with_grad else self.p_sample
             img = img.requires_grad_()
             out = sample_fn(
@@ -767,6 +782,7 @@ class GaussianDiffusion:
                 const_noise=const_noise,
                 energy_fn=energy_fn,
                 energy_scale=energy_scale,
+                num_substeps=num_substeps,
             )
 
             yield out
@@ -1385,6 +1401,7 @@ class GaussianDiffusion:
                 ModelMeanType.START_X: x_start,
                 ModelMeanType.EPSILON: noise,
             }[self.model_mean_type]
+
             assert (
                 model_output.shape == target.shape == x_start.shape
             )  # [bs, njoints, nfeats, nframes]
@@ -1470,12 +1487,38 @@ class GaussianDiffusion:
             if self.lambda_vel > 0.0:
                 target_vel = target[..., 1:] - target[..., :-1]
                 model_output_vel = model_output[..., 1:] - model_output[..., :-1]
+                mask = torch.ones_like(target_vel)
                 terms["vel_mse"] = self.masked_l2(
                     target_vel[
                         :, :-1, :, :
                     ],  # Remove last joint, is the root location!
                     model_output_vel[:, :-1, :, :],
-                    mask[:, :, :, 1:],
+                    mask[:, :-1, :, :],
+                )  # mean_flat((target_vel - model_output_vel) ** 2)
+
+            lambda_bone = 0.0
+            terms["bone_const"] = torch.zeros(target.shape[0]).to(target.device)
+            if lambda_bone > 0.0 and target.shape[-1] > 1:
+                target_bones = Human36mPose(target.permute(0, 3, 1, 2)).bone_lengths
+                target_bones_vel = torch.pow(
+                    target_bones[:, 1:] - target_bones[:, :-1], 2
+                )
+
+                model_output_bones = Human36mPose(
+                    model_output.permute(0, 3, 1, 2)
+                ).bone_lengths
+                model_output_bones_vel = torch.pow(
+                    model_output_bones[:, 1:] - model_output_bones[:, :-1], 2
+                )
+
+                mask = torch.ones_like(target_bones_vel)
+                terms["bone_const"] = (
+                    self.masked_l2(
+                        target_bones_vel,
+                        model_output_bones_vel,
+                        mask,
+                    )
+                    * 1e3
                 )  # mean_flat((target_vel - model_output_vel) ** 2)
 
             terms["loss"] = (
@@ -1484,6 +1527,7 @@ class GaussianDiffusion:
                 + (self.lambda_vel * terms.get("vel_mse", 0.0))
                 + (self.lambda_rcxyz * terms.get("rcxyz_mse", 0.0))
                 + (self.lambda_fc * terms.get("fc", 0.0))
+                + (lambda_bone * terms.get("bone_const", 0.0))
             )
 
         else:

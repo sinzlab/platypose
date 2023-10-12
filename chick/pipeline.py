@@ -6,9 +6,9 @@ from tqdm import tqdm
 
 from chick.diffusion.fp16_util import MixedPrecisionTrainer
 from chick.diffusion.resample import UniformSampler
+from chick.platform import platform
 from chick.utils.model_util import create_model_and_diffusion
 from chick.utils.wandb import download_wandb_artefact
-from chick.platform import platform
 
 
 class SkeletonPipeline(nn.Module):
@@ -29,9 +29,9 @@ class SkeletonPipeline(nn.Module):
             "pose_rep": "rot6d",
             "glob": True,
             "glob_rot": True,
-            "latent_dim": 1024,
+            "latent_dim": 512,
             "ff_size": 1024,
-            "num_layers": 2,
+            "num_layers": 8,
             "num_heads": 4,
             "dropout": 0.1,
             "activation": "gelu",
@@ -55,7 +55,9 @@ class SkeletonPipeline(nn.Module):
 
         self.model, self.diffusion = create_model_and_diffusion(self.model_config)
 
-    def sample(self, energy_fn, energy_scale=1, num_samples=1, num_frames=1, num_substeps=1):
+    def sample(
+        self, energy_fn, energy_scale=1, num_samples=1, num_frames=1, num_substeps=1
+    ):
         """
         This function samples from a diffusion model using a given energy function and other optional parameters.
 
@@ -73,7 +75,8 @@ class SkeletonPipeline(nn.Module):
         """
         return self.diffusion.p_sample_loop_progressive(
             self.model,
-            (num_samples, 17, 3, num_frames),
+            # (num_samples, 17, 3, num_frames),
+            (num_samples, num_frames, 51),
             clip_denoised=False,
             model_kwargs={"y": {"uncond": True}},
             skip_timesteps=0,  # 0 is the default value - i.e. don't skip any step
@@ -98,6 +101,7 @@ class SkeletonPipeline(nn.Module):
         if not path_or_artefact.endswith(".pt"):
             cache_path = cache_path + ".pt"
 
+        print("cache_path", cache_path)
         if os.path.exists(cache_path) and use_cache:
             print("Using cached model")
             return torch.load(cache_path, map_location="cpu")
@@ -106,7 +110,9 @@ class SkeletonPipeline(nn.Module):
 
     @classmethod
     def from_pretrained(
-        cls, diffusion_artefact="sinzlab/chick/MDM_H36m_30_frames_50_steps:latest"
+        cls,
+        diffusion_artefact="sinzlab/chick/MDM_H36m_30_frames_50_steps:latest",
+        finetune=False,
     ):
         """
         Loads a pretrained model from wandb
@@ -115,17 +121,45 @@ class SkeletonPipeline(nn.Module):
         """
         chick = cls()
 
-        state_dict = chick._get_state_dict(diffusion_artefact)
+        state_dict = chick._get_state_dict(diffusion_artefact, use_cache=False)
 
-        chick.model.load_state_dict(state_dict)
+        if finetune:
+            # remove parameters that are part of `input_process` and `output_process`
+            state_dict = {
+                k: v
+                for k, v in state_dict.items()
+                if not (k.startswith("input_process") or k.startswith("output_process"))
+            }
+
+        # chick.model.load_state_dict(state_dict)
+        # chick.requires_grad_(True).eval()
+        # chick.to(chick.device)
+
+        # load the model excluding the input and output process
+        chick.model.load_state_dict(state_dict, strict=False)
+
         chick.requires_grad_(True).eval()
         chick.to(chick.device)
+
+        # parallelize the model to multiple GPUs
+        avaliable_gpus = torch.cuda.device_count()
+        chick.model = nn.DataParallel(
+            chick.model, device_ids=list(range(avaliable_gpus))
+        )
+
+        # if finetune:
+        #     # freeze the weights that are not part of the input and output process
+        #     for name, param in chick.model.named_parameters():
+        #         if not (name.startswith("input_process") or name.startswith("output_process")):
+        #             param.requires_grad = False
+        #         else:
+        #             param.requires_grad = True
 
         return chick
 
     @classmethod
     def pretrain(cls, dataloader, cfg):
-        self = cls()
+        self = cls().from_pretrained("./model000450000.pt", finetune=True)
         self.to(cfg.device)
 
         mp_trainer = MixedPrecisionTrainer(
@@ -141,21 +175,28 @@ class SkeletonPipeline(nn.Module):
         )
 
         num_epochs = cfg.train.num_steps // len(dataloader) + 1
+        checkpoint_interval = 100_000 // len(dataloader) + 1
+
         for epoch in range(num_epochs):
             print(f"Starting epoch {epoch}")
             pbar = tqdm(dataloader)
             for (
-                cam, gt_3D, input_2D_update, action, subject, scale, bb_box, cam_ind, start_3d
+                # cam, gt_3D, input_2D_update, action, subject, scale, bb_box, cam_ind, start_3d
+                gt_3D,
+                subject,
+                cameras,
             ) in pbar:
-                gt_3D[:, :, 0] = 0  # set the root to 0
+                # gt_3D[:, :, 0] = 0  # set the root to 0
 
-                batch = gt_3D.permute(0, 2, 3, 1)
-                batch = batch.to(cfg.device)
+                # batch = gt_3D.permute(0, 2, 3, 1)
+                # batch = batch.to(cfg.device)
+                batch = gt_3D.to(cfg.device)
 
                 # randomly clip the batch to different lengths
                 if cfg.train.augment_length:
-                    length = torch.randint(1, batch.shape[-1], (1,)).item()
-                    batch = batch[..., :length]
+                    length = torch.randint(1, batch.shape[1], (1,)).item()
+                    # batch = batch[..., :length]
+                    batch = batch[:, :length]
 
                 cond = {
                     "y": {
@@ -185,12 +226,25 @@ class SkeletonPipeline(nn.Module):
                     platform.log(
                         {
                             "loss": loss.item(),
+                            # "vel_loss": losses["vel_mse"].mean().item(),
+                            "mse_loss": losses["rot_mse"].mean().item(),
+                            # "bone_consistency": losses["bone_const"].mean().item(),
                         }
                     )
 
-                    pbar.set_description("loss: %.3f" % loss.item())
+                    # pbar.set_description(f"loss: {loss.item():.4f} | vel_loss: {losses['vel_mse'].mean().item():.4f} | mse_loss: {losses['rot_mse'].mean().item():.4f} | bone_consistency: {losses['bone_const'].mean().item():.4f}")
+                    pbar.set_description(f"loss: {loss.item():.4f}")
 
                     mp_trainer.backward(loss)
+
+                    if epoch % checkpoint_interval == 0:
+                        checkpoint_path = f"./models/{cfg.model.name}.pt"
+                        torch.save(
+                            self.model.state_dict(),
+                            checkpoint_path,
+                        )
+
+                        platform.save(checkpoint_path)
 
                 mp_trainer.optimize(opt)
 
