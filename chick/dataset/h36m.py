@@ -52,6 +52,7 @@ h36m_skeleton = Skeleton(
     joints_right=[1, 2, 3, 4, 5, 24, 25, 26, 27, 28, 29, 30, 31],
 )
 
+cameras = ["54138969", "55011271", "58860488", "60457274"]
 h36m_cameras_intrinsic_params = [
     {
         "id": "54138969",
@@ -497,6 +498,7 @@ class Fusion(data.Dataset):
                 joints_left=self.joints_left,
                 joints_right=self.joints_right,
                 out_all=opt.out_all,
+                augment=True,
             )
             print("INFO: Training on {} frames".format(self.generator.num_frames()))
         else:
@@ -678,12 +680,28 @@ class Fusion(data.Dataset):
 
         scale = np.float64(1.0)
 
-        return cam, gt_3D, input_2D_update, action, subject, scale, bb_box, cam_ind
+        return (
+            cam,
+            gt_3D,
+            input_2D_update,
+            action,
+            subject,
+            scale,
+            bb_box,
+            cam_ind,
+            start_3d,
+        )
 
 
 class H36MVideoDataset(Fusion):
     def __init__(
-        self, path, root_path, frames=1, mode: DatasetMode = "eval", config=None, keypoints='gt'
+        self,
+        path,
+        root_path,
+        frames=1,
+        mode: DatasetMode = "eval",
+        config=None,
+        keypoints="gt",
     ):
         self.config = {
             "actions": "*",
