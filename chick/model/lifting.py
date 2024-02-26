@@ -75,7 +75,7 @@ class MDM(nn.Module):
             self.data_rep, self.input_feats + self.gru_emb_dim, self.latent_dim
         )
 
-        self.sequence_pos_encoder = PositionalEncoding(self.latent_dim, self.dropout)
+        self.sequence_pos_encoder = PositionalEncoding(self.latent_dim, self.dropout, max_len=256)
         self.emb_trans_dec = emb_trans_dec
 
         # self.skeleton_encoder = SkeletonEncoder(latent_dim=self.latent_dim)

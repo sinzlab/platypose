@@ -56,7 +56,7 @@ class SkeletonPipeline(nn.Module):
         self.model, self.diffusion = create_model_and_diffusion(self.model_config)
 
     def sample(
-        self, energy_fn, energy_scale=1, num_samples=1, num_frames=1, num_substeps=1
+        self, energy_fn, energy_scale=1, num_samples=1, num_frames=1, num_substeps=1, ddim=False, init_pose=None, skip_timesteps=0
     ):
         """
         This function samples from a diffusion model using a given energy function and other optional parameters.
@@ -73,22 +73,24 @@ class SkeletonPipeline(nn.Module):
         `num_samples` parameter. The samples are returned as a tensor of shape `(num_samples, 3, image_size, image_size)`.
         The function also has optional parameters for using alpha
         """
-        return self.diffusion.p_sample_loop_progressive(
+        sample_fn = self.diffusion.ddim_sample_loop_progressive if ddim else self.diffusion.p_sample_loop_progressive
+
+        return sample_fn(
             self.model,
             # (num_samples, 17, 3, num_frames),
             (num_samples, num_frames, 51),
             clip_denoised=False,
             model_kwargs={"y": {"uncond": True}},
-            skip_timesteps=0,  # 0 is the default value - i.e. don't skip any step
-            init_image=None,
+            skip_timesteps=skip_timesteps,  # 0 is the default value - i.e. don't skip any step
+            init_image=init_pose,
             progress=False,
             energy_fn=energy_fn,
             energy_scale=energy_scale,
-            num_substeps=num_substeps,
+            num_substeps=num_substeps
         )
 
     @staticmethod
-    def _get_state_dict(path_or_artefact: str, use_cache: bool = True):
+    def _get_state_dict(path_or_artefact: str, use_cache: bool = False):
         """
         Checks if path_or_artefact is a path if not tries to download the model from wandb
         :param path_or_artefact: path to model or wandb artifact
@@ -121,7 +123,7 @@ class SkeletonPipeline(nn.Module):
         """
         chick = cls()
 
-        state_dict = chick._get_state_dict(diffusion_artefact, use_cache=False)
+        state_dict = chick._get_state_dict(diffusion_artefact)
 
         if finetune:
             # remove parameters that are part of `input_process` and `output_process`
@@ -159,7 +161,7 @@ class SkeletonPipeline(nn.Module):
 
     @classmethod
     def pretrain(cls, dataloader, cfg):
-        self = cls().from_pretrained("./model000450000.pt", finetune=True)
+        self = cls()#.from_pretrained("model000450000.pt", finetune=True)
         self.to(cfg.device)
 
         mp_trainer = MixedPrecisionTrainer(

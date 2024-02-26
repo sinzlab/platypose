@@ -13,6 +13,7 @@ from copy import deepcopy
 import numpy as np
 import torch
 import torch as th
+import gc
 
 from chick.diffusion.losses import discretized_gaussian_log_likelihood, normal_kl
 from chick.diffusion.nn import mean_flat, sum_flat
@@ -255,7 +256,7 @@ class GaussianDiffusion:
         """
         if noise is None:
             noise = th.randn_like(x_start)
-        assert noise.shape == x_start.shape
+        assert noise.shape == x_start.shape, f"{noise.shape} != {x_start.shape}"
         return (
             _extract_into_tensor(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
             + _extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
@@ -395,24 +396,51 @@ class GaussianDiffusion:
             # pred_xstart = energy["train"]
             # pred_xstart[..., :64, :] = energy["train"][..., :64, :]
             # pred_xstart[..., -64:, :] = energy["train"][..., -64:, :]
-            for _ in range(num_substeps):
-                energy = energy_fn(pred_xstart)
-                grad_outputs = th.ones_like(energy["train"])
+            prev_energy = 100
+            with th.enable_grad():
+                pred_xstart = pred_xstart.requires_grad_()
 
-                if torch.isnan(energy["train"]).any():
-                    print("is nan in energy")
-                    break
+                optimizer = th.optim.SGD([pred_xstart], lr=energy_scale)
+                lr_scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=0, factor=0.1, verbose=False)
 
-                # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
-                grad = th.autograd.grad(
-                    outputs=energy["train"],
-                    inputs=pred_xstart,
-                    grad_outputs=grad_outputs,
-                )[0]
+                for _ in range(num_substeps):
+                    optimizer.zero_grad()
 
-                update = grad * energy_scale
-                pred_xstart = pred_xstart - update
-            ###
+                    energy = energy_fn(pred_xstart)
+                    grad_outputs = th.ones_like(energy["train"])
+
+                    if torch.isnan(energy["train"]).any():
+                        print("is nan in energy")
+                        break
+
+                    # if energy["train"].mean() > prev_energy:
+                    #     energy_scale *= .1
+                        # # decay learning rate
+                        # for param_group in optimizer.param_groups:
+                        #     param_group["lr"] *= 0.1
+
+                    lr_scheduler.step(energy["train"].mean())
+                    # prev_energy = energy["train"].mean()
+
+                    # compute the gradient per batch, where input is (batch, channel, height, width), output is (batch)
+                    grad = th.autograd.grad(
+                        outputs=energy["train"],
+                        inputs=pred_xstart,
+                        grad_outputs=grad_outputs,
+                    )[0]
+
+                    # langevin update
+                    # eps = 0.001 / t
+                    # variance = 1/energy_scale
+                    # update = (grad / variance) + (np.sqrt(2 * eps) * th.randn_like(pred_xstart))
+                    # update = grad * energy_scale
+                    # pred_xstart = pred_xstart - update
+
+                    pred_xstart.grad = grad
+
+                    optimizer.step()
+
+                    ###
 
             model_mean, _, _ = self.q_posterior_mean_variance(
                 x_start=pred_xstart, x_t=x, t=t
@@ -785,9 +813,9 @@ class GaussianDiffusion:
                 num_substeps=num_substeps,
             )
 
-            yield out
             img = out["sample"]
             img.detach_()
+            yield out
             # gc.collect()
 
     def ddim_sample(
@@ -800,6 +828,9 @@ class GaussianDiffusion:
         cond_fn=None,
         model_kwargs=None,
         eta=0.0,
+        energy_fn=None,
+        energy_scale=1.0,
+        num_substeps=5,
     ):
         """
         Sample x_{t-1} from the model using DDIM.
@@ -813,6 +844,9 @@ class GaussianDiffusion:
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
             model_kwargs=model_kwargs,
+            energy_fn=energy_fn,
+            energy_scale=energy_scale,
+            num_substeps=num_substeps,
         )
         if cond_fn is not None:
             out = self.condition_score(
@@ -1005,6 +1039,9 @@ class GaussianDiffusion:
         init_image=None,
         randomize_class=False,
         cond_fn_with_grad=False,
+        energy_fn=None,
+        energy_scale=1.0,
+        num_substeps=10,
     ):
         """
         Use DDIM to sample from the model and yield intermediate samples from
@@ -1059,9 +1096,14 @@ class GaussianDiffusion:
                     cond_fn=cond_fn,
                     model_kwargs=model_kwargs,
                     eta=eta,
+                    energy_fn=energy_fn,
+                    energy_scale=energy_scale,
+                    num_substeps=num_substeps,
                 )
-                yield out
-                img = out["sample"]
+            del img
+            img = out["sample"].detach()
+            yield out
+            gc.collect()
 
     def plms_sample(
         self,

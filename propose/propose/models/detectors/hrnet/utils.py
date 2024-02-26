@@ -45,6 +45,7 @@ def crop_image_to_human(input_image, detector):
     cropped_image = padder(torch.Tensor(cropped_image)).numpy()
     cropped_image = cropped_image / 255
 
+    scale = 256 / cropped_image.shape[0]
     cropped_image = rescale(
         cropped_image, 256 / cropped_image.shape[0], channel_axis=-1
     )
@@ -59,4 +60,4 @@ def crop_image_to_human(input_image, detector):
     cropped_image = padder(torch.Tensor(cropped_image)).numpy()
     cropped_image = cropped_image[:256, :256]
 
-    return cropped_image
+    return cropped_image, crop_size, scale

@@ -8,4 +8,7 @@ WORKDIR /src
 RUN pip install --no-cache-dir --upgrade keyrings.alt
 RUN pip install --no-cache-dir poetry
 
-RUN poetry install
+RUN poetry config installer.max-workers 10
+
+RUN poetry install --no-interaction --no-ansi -vvv
+RUN poetry add pandas

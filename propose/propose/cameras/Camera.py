@@ -157,6 +157,39 @@ class Camera(object):
 
         return projected_points
 
+    def proj3D(self, points: Point2D, center: float) -> Point3D:
+        """
+        Computes the projection of a 2D point onto the 3D camera space
+        :param points: 2D points (x, y) (important to have the 2d points on the last axis)
+        :param center: 3D point (x, y, z) representing the root of the points.
+        :return: Projected 3D points (x, y, z)
+        """
+        # import torch.distributions as D
+
+        assert points.shape[-1] == 2
+
+        R_inv = torch.inverse(self.rotation_matrix).to(self.device)
+        T_inv = -self.translation_vector.to(self.device)
+
+        center_in_cam = torch.matmul(center + T_inv, R_inv)
+
+        extended_points = torch.cat([points, torch.ones_like(points[..., :1])], dim=-1)
+
+
+        # depth = D.MultivariateNormal(loc=torch.Tensor(mean_cov['mean'])[1:], covariance_matrix=torch.Tensor(mean_cov['cov'])[1:, 1:]).sample((50, ))
+        # depth = torch.cat([torch.zeros(50, 1), depth], dim=-1)
+
+        projected_points = torch.inverse(self.intrinsic_matrix).to(self.device).float().transpose(-1, -2) @ extended_points.transpose(-1, -2).float()
+        projected_points = projected_points.transpose(-1, -2)
+        projected_points = projected_points / torch.norm(projected_points, dim=-1).unsqueeze(-1)
+        # depth = (depth.to(self.device) + torch.norm(center_in_cam.unsqueeze(0).unsqueeze(0), dim=-1)).unsqueeze(-1)
+        # projected_points = projected_points * torch.norm(center_in_cam.unsqueeze(0).unsqueeze(0), dim=-1).unsqueeze(-1)
+        projected_points = projected_points * torch.norm(center_in_cam.unsqueeze(0).unsqueeze(0), dim=-1).unsqueeze(-1)
+        # projected_points = projected_points * depth
+        projected_points = projected_points @ self.rotation_matrix.to(self.device) + self.translation_vector.to(self.device)
+
+        return projected_points
+
     def _proj2D_martinez(self, P, R, T, f, c, k, p):
         """
         Args

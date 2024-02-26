@@ -14,12 +14,14 @@ _C.seed = 1
 _C.device = "cuda"  # Overwritten when config is loaded
 
 _C.dataset = CN()
-_C.dataset.path = "dataset.pkl"  # "data_3d_h36m.npz"
+_C.dataset.path = "dataset_3dhp.pkl"  # "data_3d_h36m.npz"
 # _C.dataset.path = "data_3d_h36m.npz"
 _C.dataset.root = "./dataset/"
 _C.dataset.full_path = (
     _C.dataset.root + _C.dataset.path
 )  # Overwritten when config is loaded
+_C.dataset.subjects = ["S9", "S11"]
+_C.dataset.stride = 64
 
 _C.experiment = CN()
 _C.experiment.num_samples = 200

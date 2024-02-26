@@ -10,7 +10,7 @@ x-shared: &common
 
 services:
   base:
-    image: chick
+    image: platypose
     <<: *common
     volumes:
       - .:/src/propose
@@ -19,7 +19,7 @@ services:
 
   python:
     &python
-    image: chick
+    image: platypose
     entrypoint: [ "poetry", "run", "python" ]
     env_file:
         - .env
@@ -28,37 +28,37 @@ services:
       - ./data:/data
       - ./experiments:/experiments
       - ./output:/output
-      - ./chick:/src/chick
+      - ./platypose:/src/platypose
       - ./:/src
 
   train:
-    image: chick
+    image: platypose
     volumes:
       - ./scripts:/scripts
       - ./data:/data
       - ./experiments:/experiments
       - ./output:/output
-      - ./chick:/src/chick
+      - ./platypose:/src/platypose
       - ./:/src
     entrypoint: [ "poetry", "run", "python", "/src/scripts/train.py" ]
     env_file:
         - .env
 
   wehrbein:
-    image: chick
+    image: platypose
     volumes:
       - ./scripts:/scripts
       - ./data:/data
       - ./experiments:/experiments
       - ./output:/output
-      - ./chick:/src/chick
+      - ./platypose:/src/platypose
       - ./:/src
     entrypoint: [ "poetry", "run", "python", "/src/scripts/wehrbein.py" ]
     env_file:
       - .env
 
   eval:
-    image: chick
+    image: platypose
     volumes:
       - ./scripts:/scripts
       - ./data:/data
@@ -66,8 +66,8 @@ services:
       - ./experiments:/experiments
       - ./output:/output
       - ./models:/src/models
-      - ./chick:/src/chick
+      - ./platypose:/src/platypose
       - ./:/src
-    entrypoint: [ "poetry", "run", "python", "/src/scripts/eval.py" ]
+    entrypoint: [ "poetry", "run", "python", "/src/scripts/evaluate.py" ]
     env_file:
         - .env
