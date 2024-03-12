@@ -4,7 +4,10 @@
   <img width="100%" src="assets/logo_wide.png" alt="Platypose Logo">
 </p>
 
-This repository is derived from [EGG diffusion](https://github.com/sinzlab/energy-guided-diffusion).
+> [**Energy Guided Diffusion for Generating Neurally Exciting Images**](https://www.biorxiv.org/content/10.1101/2023.05.18.541176v1), \
+> Pawel A. Pierzchlewicz, Caio Oliviera, James Cotton, Fabian H. Sinz
+>
+> [[arXiv]](https://arxiv.org/abs/2403.06164)
 
 ## Reproducing the results
 
