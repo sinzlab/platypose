@@ -1,22 +1,18 @@
-# 🐣 PlatyPose: EnerGy Guided diffusion for lifting human poses from 2D to 3D
+# 🐣 Platypose: Calibrated Zero-Shot Multi-Hypothesis 3D Human Motion Estimation
 
 <p align="center">
   <img width="100%" src="assets/logo_wide.png" alt="Platypose Logo">
 </p>
 
-This repository is derived from [EGG diffusion](https://github.com/sinzlab/energy-guided-diffusion), hence the name CHICK.
-
-## Abstract
-Diffusion models allow us to sample from complex distributions by estimating the reverse diffusion process.
-As we show in our previous work [EGG diffusion](https://github.com/sinzlab/energy-guided-diffusion) diffusion models can be guided using an energy function.
-In this work we apply this idea to the task of lifting 2D human poses to 3D.
-We can 1) learn a powerful pose + motion prior using a diffusion model and 2) define an energy function that guides the diffusion process to generate realistic 3D poses that are consistent with the 2D pose.
-We propose to use the re-projection likelihood of the 3D pose as energy function, i.e. the likelihood of the 3D pose projected to 2D given the 2D keypoint heatmap.
+> [**Platypose: Calibrated Zero-Shot Multi-Hypothesis 3D Human Motion Estimation**](https://arxiv.org/abs/2403.06164), \
+> Pawel A. Pierzchlewicz, Caio Oliviera, James Cotton, Fabian H. Sinz
+>
+> [[arXiv]](https://arxiv.org/abs/2403.06164)
 
 ## Reproducing the results
 
 #### 1. Download the data
-Navigate to the [dataset](https://github.com/sinzlab/chick/dataset) folder and follow the instructions in the `README.md` file.
+Navigate to the [dataset](/dataset) folder and follow the instructions in the `README.md` file.
 
 #### 2. Base docker image
 Ensure that you have the base image pulled from the Docker Hub.
@@ -34,7 +30,7 @@ docker-compose build base
 #### 4. Run the training
 To train the model run the following command:
 ```bash
-docker compose run -d --name platypose_train_0 -e NVIDIA_VISIBLE_DEVICES=0 train --experiment single_frame
+docker compose run -d --name platypose_train_0 -e NVIDIA_VISIBLE_DEVICES=0 train --experiment h36m
 ```
 this will spawn a docker container that will start the `main.py` script and will detach the process from the terminal.
 the `platypose_train_0` can be any name you want to give to the process. In the example 0 indicates the GPU id this process will use.
@@ -46,20 +42,20 @@ docker logs platypose_train_0
 #### 5. Run the evaluation
 To evaluate the model run the following command:
 ```bash
-docker compose run --name platypose_eval_0 -e NVIDIA_VISIBLE_DEVICES=0 eval --experiment single_frame
+docker compose run --name platypose_eval_0 -e NVIDIA_VISIBLE_DEVICES=0 eval --experiment h36m
 ```
 this will spawn a docker container that will start the `./scrips/eval.py` script.
 
 
 ## Documentation
 
-### Chick sampling
+### Platypose sampling
 Here is a short snippet on how to load in the model with pretrained weights and how to generate samples from the model.
 
 ```python
-from chick.pipeline import SkeletonPipeline
+from platypose.pipeline import SkeletonPipeline
 
-pipe = SkeletonPipeline.from_pretrained("sinzlab/chick/MDM_H36m_1_frame_50_steps:latest")
+pipe = SkeletonPipeline.from_pretrained("sinzlab/platypose/MDM_H36m_1_frame_50_steps:latest")
 
 samples_progressive = pipe.sample(
     num_samples=10,
@@ -77,7 +73,7 @@ sample = _sample["sample"]  # get the 3D pose sample
 Experiments are configured via YAML files and can be overriden via command line arguments.
 The YAML files are located in the `experiments` folder.
 
-The YAML file overrides the default config file located in `chick/config.py`.
+The YAML file overrides the default config file located in `platypose/config.py`.
 
 An example config file is shown below:
 ```yaml
@@ -85,7 +81,7 @@ experiment:
   num_samples: 50
   energy_scale: 30
   num_frames: 1
-  model: "sinzlab/chick/MDM_H36m_1_frame_50_steps:latest"
+  model: "sinzlab/platypose/MDM_H36m_1_frame_50_steps:latest"
   seed: 1
   projection: "dummy"
 ```

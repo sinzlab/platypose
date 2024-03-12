@@ -1,0 +1,36 @@
+seed: 0
+
+model:
+  num_frames: 1
+  name: "sinzlab/platypose/MDM_H36m_256_frames_50_steps_dynamic:v16"
+
+dataset:
+  path: "dataset_3dpw.pkl"
+  subjects: ['a1']
+  stride: 35
+
+train:
+  augment_length: True
+  num_steps: 600_000
+
+experiment:
+  num_samples: 200
+  num_substeps: 10
+  num_repeats: 1
+  num_cameras: 1
+  energy_scale: 10
+  energy_fn: "multi_view"
+  projection: "camera"
+  keypoints: "gt"
+
+#  mean MPJPE: 50.64764404296875 | MPJPE: 56.695892333984375 | _calibration_score: 0.14040616246498602
+#  mean MPJPE: 50.46393585205078 | MPJPE: 56.792911529541016 | _calibration_score: 0.1320028011204482
+# 16,200 -> mean MPJPE: 48.96556091308594 | median MPJPE: 45.78718566894531 | MPJPE: 36.73040008544922 | _calibration_score: 0.10002334267040147
+# 1,200 --> mean MPJPE: 48.379051208496094 | median MPJPE: 45.04805374145508 | MPJPE: 58.882835388183594 | _calibration_score: 0.13235294117647062
+# 1,50  --> mean MPJPE: 54.780242919921875 | median MPJPE: 50.46516418457031 | MPJPE: 58.88283157348633 | _calibration_score: 0.13993930905695615
+
+
+# 1,200,20 --> 48.476322174072266 | median MPJPE: 45.703155517578125 | MPJPE: 51.754486083984375 | _calibration_score: 0.13188608776844074
+# 1,200,30 --> 48.2827033996582 | median MPJPE: 45.017112731933594 | MPJPE: 50.350547790527344 | _calibration_score: 0.1397058823529412
+# 1,200,40 --> 48.263938903808594 | median MPJPE: 44.8526725769043 | MPJPE: 50.095951080322266 | _calibration_score: 0.14239028944911297
+# 1,200,50 --> 48.253395080566406 | median MPJPE: 44.68499755859375 | MPJPE: 50.193389892578125 | _calibration_score: 0.14425770308123248
