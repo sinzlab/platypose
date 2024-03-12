@@ -44,19 +44,6 @@ services:
     env_file:
         - .env
 
-  wehrbein:
-    image: platypose
-    volumes:
-      - ./scripts:/scripts
-      - ./data:/data
-      - ./experiments:/experiments
-      - ./output:/output
-      - ./platypose:/src/platypose
-      - ./:/src
-    entrypoint: [ "poetry", "run", "python", "/src/scripts/wehrbein.py" ]
-    env_file:
-      - .env
-
   eval:
     image: platypose
     volumes:
