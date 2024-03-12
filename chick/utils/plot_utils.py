@@ -85,7 +85,7 @@ def plot_arrows(ax, lengths=[1, 2, 1]):
 def plot_2D(projected_gt_3D, input_2D, samples, name, n_frames, alpha=0.1):
     projected_gt_3D = projected_gt_3D.cpu().detach().numpy().squeeze()
     input_2D = input_2D.squeeze().cpu().detach().numpy()
-    samples = np.stack([sample.cpu().detach().numpy().squeeze() for sample in samples])
+    # samples = np.stack([sample.cpu().detach().numpy().squeeze() for sample in samples])
 
     # projected_gt_3D[..., 1] = -projected_gt_3D[..., 1]
     # samples[..., 1] = -samples[..., 1]
@@ -93,8 +93,8 @@ def plot_2D(projected_gt_3D, input_2D, samples, name, n_frames, alpha=0.1):
     if n_frames == 1:
         fig = plt.figure(figsize=(4, 4), dpi=150)
         ax = fig.add_subplot(1, 1, 1)
-        ax.set_xlim(-1, 1)
-        ax.set_ylim(-1, 1)
+        # ax.set_xlim(-1, 1)
+        # ax.set_ylim(-1, 1)
         plt.axis("off")
 
         # gizmo arrows
@@ -120,24 +120,24 @@ def plot_2D(projected_gt_3D, input_2D, samples, name, n_frames, alpha=0.1):
             )
         )
 
-        # aux = Human36mPose(input_2D)
-        # aux.plot(ax, plot_type="none", c="tab:red")
+        aux = Human36mPose(input_2D)
+        aux.plot(ax, plot_type="none", c="tab:red", alpha=0.5)
         for sample in samples:
             aux = Human36mPose(sample)
             aux.plot(
                 ax, plot_type="none", c=palettes["chick"]["black"], alpha=alpha, lw=1
             )
 
-        aux = Human36mPose(input_2D)
-        aux.plot(ax, plot_type="none", c=palettes["chick"]["red"], lw=2)
-
+        # aux = Human36mPose(input_2D)
+        # aux.plot(ax, plot_type="none", c=palettes["chick"]["red"], lw=2)
+        #
         aux = Human36mPose(projected_gt_3D)
-        aux.plot(ax, plot_type="none", c=palettes["candy"]["blue"], lw=2)
+        aux.plot(ax, plot_type="none", c=palettes["candy"]["blue"], lw=2, alpha=0.5)
 
         plt.savefig(f"./poses/{name}.png", dpi=150, bbox_inches="tight", pad_inches=0)
         plt.close()
     else:
-        with GifMaker(f"./poses/{name}.gif", fps=10) as g:
+        with GifMaker(f"./poses/{name}.gif", fps=30) as g:
             for i in range(n_frames):
                 fig = plt.figure(figsize=(4, 4), dpi=150)
                 ax = fig.add_subplot(1, 1, 1)
@@ -151,19 +151,17 @@ def plot_2D(projected_gt_3D, input_2D, samples, name, n_frames, alpha=0.1):
                 aux = Human36mPose(projected_gt_3D[..., i])
                 aux.plot(ax, plot_type="none", c=palettes["chick"]["red"])
                 aux = Human36mPose(input_2D[..., i])
-                aux.plot(ax, plot_type="none", c=palettes["chick"]["brown"])
+                aux.plot(ax, plot_type="none", c=palettes["chick"]["black"])
 
                 g.add(fig)
 
 
 def plot_3D(gt_3D, samples, name, alpha=0.1, rotation=0):
-    gt_3D = gt_3D.cpu().detach().numpy()#.squeeze()
+    gt_3D = gt_3D.cpu().detach().numpy()  # .squeeze()
     # samples = np.stack([sample.cpu().detach().numpy().squeeze() for sample in samples])
     samples = np.stack([sample.cpu().detach().numpy() for sample in samples])
 
     n_frames = gt_3D.shape[-1]
-    print('gt_3D.shape', gt_3D.shape)
-    print('n_frames', n_frames)
     if n_frames == 1:
         gt_3D = gt_3D[..., 0]
         samples = samples[..., 0]
@@ -194,7 +192,7 @@ def plot_3D(gt_3D, samples, name, alpha=0.1, rotation=0):
                 aux.plot(
                     ax,
                     plot_type="none",
-                    c=palettes["chick"]["red"],
+                    c=palettes["chick"]["black"],
                     alpha=alpha,
                     lw=1,
                     zorder=10,
@@ -217,10 +215,10 @@ def plot_3D(gt_3D, samples, name, alpha=0.1, rotation=0):
             for i in range(n_frames):
                 fig = plt.figure(figsize=(4, 4), dpi=150)
                 ax = fig.add_subplot(1, 1, 1, projection="3d")
-                # ax.set_xlim(-1, 1)
-                # ax.set_ylim(-1, 1)
-                # ax.set_zlim(-1, 1)
-                # ax.view_init(elev=0.0, azim=0.0)
+                ax.set_xlim(-1, 1)
+                ax.set_ylim(-1, 1)
+                ax.set_zlim(-1, 1)
+                ax.view_init(elev=0.0, azim=0.0)
                 # rot = 90
                 rot = rotation
                 ax.set_xlim(-0.5, 0.5)

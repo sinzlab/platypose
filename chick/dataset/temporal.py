@@ -276,7 +276,7 @@ class Human36mDataset(Dataset):
             #     crop_bbs_chunks = np.stack(crop_bbs_chunks, axis=1)
 
             subject_cameras = []
-            num_cams = 4
+            num_cams = 1
             for camera_idx in range(num_cams):
                 camera_params = self.dataset["cameras"][
                     (subject_idx, camera_idx + 1)

@@ -70,9 +70,9 @@ if __name__ == "__main__":
         x_3d = gt_3D.reshape(1, cfg.model.num_frames, 17, 3)
         # x_3d[..., [1, 2]] = x_3d[..., [2, 1]]
         # center = x_3d[:, :, :1, :].clone()
-        # # x_3d[..., 1] = -x_3d[..., 1]
-        # x_3d[:, :, 0, :] = 0
-        # x_3d = x_3d + center
+        # x_3d[..., 1] = -x_3d[..., 1]
+
+        x_3d[:, :, 1:, :] = x_3d[:, :, 1:, :] + x_3d[:, :, :1, :]
 
         # rotate x_3d
         # x_3d = torch.matmul(x_3d + T_inv, R_inv)
@@ -81,7 +81,16 @@ if __name__ == "__main__":
         # x_2d = cameras[0].proj2D(x_3d.cuda()).cuda()
         # x_2d_2 = cameras[1].proj2D(x_3d.cuda()).cuda()
         # print('project 3D to 2D')
+        # x_2d = [cam.proj2D(x_3d.cuda()).cuda() + torch.randn(size=(1, 32, 17, 2)).to('cuda') * 0.0 for cam in cameras]
         x_2d = [cam.proj2D(x_3d.cuda()).cuda() for cam in cameras]
+
+        # plot x_2d using Human36mPose
+        # import matplotlib.pyplot as plt
+        # fig = plt.figure()
+        # Human36mPose(x_2d[0].cpu().numpy()).plot(ax=plt.gca(), plot_type="none", c="#f96113")
+        # plt.savefig("test.png")
+        #
+        # exit()
 
         # x_2d_1 = cameras[1].proj2D(x_3d.cuda()).cuda()
         # x_2d_2 = cameras[2].proj2D(x_3d.cuda()).cuda()
@@ -93,7 +102,7 @@ if __name__ == "__main__":
         # Human36mPose(x_2d[0][0, 0].cpu().numpy()).plot(ax=ax)
         # plt.axis('equal')
 
-        #
+
         # ax = plt.subplot(1, 4, 2)
         # Human36mPose(x_2d_1[0, 0].cpu().numpy()).plot(ax=ax)
         # plt.axis('equal')
@@ -105,7 +114,7 @@ if __name__ == "__main__":
         # ax = plt.subplot(1, 4, 4)
         # Human36mPose(x_2d_3[0, 0].cpu().numpy()).plot(ax=ax)
         # plt.axis('equal')
-        #
+
         # plt.savefig('x_2d.png')
         # plt.close()
         #
@@ -142,7 +151,7 @@ if __name__ == "__main__":
                 num_substeps=cfg.experiment.num_substeps,
                 energy_fn=partial(
                     energies[cfg.experiment.energy_fn],
-                    x_3d=x_3d,
+                    x_3d=x_3d.cuda(),
                     x_2d=x_2d,
                     center=center,
                     camera=cameras,
@@ -174,9 +183,9 @@ if __name__ == "__main__":
         sample = full_to_position(sample).cpu().numpy()
 
         # reapply the center
-        # center = sample[:, :, :1, :].copy()
-        # sample[:, :, 0, :] = 0
-        # # center = center.cpu().numpy()
+        center = sample[:, :, :1, :].copy()
+        sample[:, :, 0, :] = 0
+        # center = center
         # sample = sample + center
 
         # x_3d = x_3d.cpu().numpy()
@@ -185,13 +194,14 @@ if __name__ == "__main__":
         # x_3d = x_3d + center
 
         x_3d = x_3d.cpu().numpy()
+        x_3d = x_3d - x_3d[:, :, :1, :]
         # center = x_3d[:, :, :1, :].copy()
         # x_3d[:, :, 0, :] = 0
         # x_3d = x_3d + center
 
         # Remove trajectory
-        # x_3d = x_3d - x_3d[:, :, 0:1, :]
-        # sample = sample - sample[:, :, 0:1, :]
+        x_3d = x_3d - x_3d[:, :, 0:1, :]
+        sample = sample - sample[:, :, 0:1, :]
 
         # Align the first frame
         # x_3d = x_3d - x_3d[:, 0:1, 0:1, :]
@@ -202,52 +212,52 @@ if __name__ == "__main__":
 
         print(f"MPJPE: {m.min()} | {np.mean(minMPJPES)}")
 
-        # # print(sample.shape)
-        with GifMaker("./poses.gif") as g:
-            for i in tqdm(range(cfg.model.num_frames)):
-                fig = plt.figure(figsize=(10, 10), dpi=150)
-                ax = fig.add_subplot(111, projection="3d")
-
-                # draw a 2d plane at z=0
-                xx, yy = np.meshgrid(np.linspace(-5, 5, 10), np.linspace(-5, 5, 10))
-                z = np.zeros(xx.shape)
-                ax.plot_surface(xx, yy, z, alpha=0.025, color="#221114")
-
-                Human36mPose(sample[:, i]).plot(ax=ax, plot_type="none", c="#f96113")
-                Human36mPose(x_3d[:, i]).plot(ax=ax, plot_type="none", c="#648FFF")
-                # ax.scatter(sample[:, i, :, 0], sample[:, i, :, 1], sample[:, i, :, 2], c='#f96113', marker='o', s=20)
-                # ax.scatter(x_3d[:, i, :, 0], x_3d[:, i, :, 1], x_3d[:, i, :, 2], c='b', marker='o', s=20)
-
-                # plot a line following the first joint
-                for j in range(len(sample)):
-                    ax.plot(
-                        sample[j, :i, 0, 0],
-                        sample[j, :i, 0, 1],
-                        sample[j, :i, 0, 2],
-                        c="#221114",
-                    )
-                    ax.plot(
-                        sample[j, :i, 3, 0],
-                        sample[j, :i, 3, 1],
-                        sample[j, :i, 3, 2],
-                        c="#221114",
-                    )
-
-                # range -1, 1
-                ax.set_xlim(-2, 2)
-                ax.set_ylim(-2, 2)
-                ax.set_zlim(0, 2.5)
-
-                plt.gca().set_box_aspect(aspect=(1, 1, 2.5 / 4))
-
-                # grid off
-                ax.grid(False)
-                ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-                ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-
-                g.add(fig)
-
-            g.save()
+        # print(sample.shape)
+        # with GifMaker("./poses.gif") as g:
+        #     for i in tqdm(range(cfg.model.num_frames)):
+        #         fig = plt.figure(figsize=(10, 10), dpi=150)
+        #         ax = fig.add_subplot(111, projection="3d")
+        #
+        #         # draw a 2d plane at z=0
+        #         xx, yy = np.meshgrid(np.linspace(-5, 5, 10), np.linspace(-5, 5, 10))
+        #         z = np.zeros(xx.shape)
+        #         ax.plot_surface(xx, yy, z, alpha=0.025, color="#221114")
+        #
+        #         Human36mPose(sample[:, i]).plot(ax=ax, plot_type="none", c="#f96113")
+        #         Human36mPose(x_3d[:, i]).plot(ax=ax, plot_type="none", c="#648FFF")
+        #         # ax.scatter(sample[:, i, :, 0], sample[:, i, :, 1], sample[:, i, :, 2], c='#f96113', marker='o', s=20)
+        #         # ax.scatter(x_3d[:, i, :, 0], x_3d[:, i, :, 1], x_3d[:, i, :, 2], c='b', marker='o', s=20)
+        #
+        #         # plot a line following the first joint
+        #         for j in range(len(sample)):
+        #             ax.plot(
+        #                 sample[j, :i, 0, 0],
+        #                 sample[j, :i, 0, 1],
+        #                 sample[j, :i, 0, 2],
+        #                 c="#221114",
+        #             )
+        #             ax.plot(
+        #                 sample[j, :i, 3, 0],
+        #                 sample[j, :i, 3, 1],
+        #                 sample[j, :i, 3, 2],
+        #                 c="#221114",
+        #             )
+        #
+        #         # range -1, 1
+        #         ax.set_xlim(-2, 2)
+        #         ax.set_ylim(-2, 2)
+        #         ax.set_zlim(0, 2.5)
+        #
+        #         plt.gca().set_box_aspect(aspect=(1, 1, 2.5 / 4))
+        #
+        #         # grid off
+        #         ax.grid(False)
+        #         ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        #         ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        #
+        #         g.add(fig)
+        #
+        #     g.save()
 
             # plot_2D(
             #     gt_3D_projected.permute(0, 2, 3, 1),

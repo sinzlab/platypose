@@ -4,13 +4,11 @@ from collections import OrderedDict
 import numpy as np
 import torch
 import wandb
-from tqdm import tqdm
-
-from propose.propose.poses.human36m import MPIIPose
 
 from .config import config
 from .models.pose_hrnet import PoseHighResolutionNet
 from .utils import crop_image_to_human
+from .fit_gaussians import fit_single_gaussian
 
 
 class HRNet(PoseHighResolutionNet):
@@ -91,29 +89,18 @@ class HRNet(PoseHighResolutionNet):
     def pose_estimate(self, input: torch.Tensor) -> np.array:
         batch_heatmaps = self.forward(input)
 
-        coords, maxvals = self.get_max_preds(batch_heatmaps.detach().numpy())
+        coords, maxvals = self.get_max_preds(batch_heatmaps.cpu().detach().numpy())
 
-        heatmap_height = batch_heatmaps.shape[2]
-        heatmap_width = batch_heatmaps.shape[3]
+        params = []
+        for i in range(16):
+            param = fit_single_gaussian(batch_heatmaps[0, i].cpu(), coords[0, i])
+            params.append(param)
 
-        # post-processing
-        for n in range(coords.shape[0]):
-            for p in range(coords.shape[1]):
-                hm = batch_heatmaps[n][p]
-                px = int(np.floor(coords[n][p][0] + 0.5))
-                py = int(np.floor(coords[n][p][1] + 0.5))
-                if 1 < px < heatmap_width - 1 and 1 < py < heatmap_height - 1:
-                    diff = np.array(
-                        [
-                            hm[py][px + 1] - hm[py][px - 1],
-                            hm[py + 1][px] - hm[py - 1][px],
-                        ]
-                    )
-                    coords[n][p] += np.sign(diff) * 0.25
+        params = np.stack(params)
+        params[:, :2] *= 4
+        params[:, 2:] *= 16
 
-        preds = coords.copy() * 4
-
-        return preds, maxvals
+        return params
 
     @classmethod
     def preprocess(
@@ -128,11 +115,19 @@ class HRNet(PoseHighResolutionNet):
             images = images.unsqueeze(0)
 
         cropped_images = []
+        bboxes = []
+        scales = []
         for image in images:
-            cropped_image = crop_image_to_human(image, detector)
+            cropped_image, bbox, scale = crop_image_to_human(image, detector)
             cropped_images.append(torch.Tensor(cropped_image))
+            bboxes.append(bbox)
+            scales.append(scale)
 
         cropped_images = torch.stack(cropped_images)
         pred_image = cropped_images.permute(0, 3, 1, 2)
 
-        return pred_image
+        return pred_image, bboxes, scales
+
+    @classmethod
+    def postprocess(cls, coords, bbox, scale):
+        return coords / scale + np.array([bbox[0], bbox[2]])

@@ -397,6 +397,7 @@ class GaussianDiffusion:
             # pred_xstart[..., :64, :] = energy["train"][..., :64, :]
             # pred_xstart[..., -64:, :] = energy["train"][..., -64:, :]
             prev_energy = 100
+            pred_xstart_before = pred_xstart.clone()
             with th.enable_grad():
                 pred_xstart = pred_xstart.requires_grad_()
 
@@ -456,6 +457,7 @@ class GaussianDiffusion:
             "variance": model_variance,
             "log_variance": model_log_variance,
             "pred_xstart": pred_xstart,
+            "pred_xstart_before": pred_xstart_before,
         }
 
     def _predict_xstart_from_eps(self, x_t, t, eps):
@@ -876,7 +878,7 @@ class GaussianDiffusion:
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
         )  # no noise when t == 0
         sample = mean_pred + nonzero_mask * sigma * noise
-        return {"sample": sample, "pred_xstart": out_orig["pred_xstart"]}
+        return {"sample": sample, "pred_xstart": out_orig["pred_xstart"], "pred_xstart_before": out_orig["pred_xstart_before"]}
 
     def ddim_sample_with_grad(
         self,

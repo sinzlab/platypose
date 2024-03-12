@@ -2,32 +2,37 @@ import sys
 import time
 from functools import partial
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from tqdm import tqdm
 from torchvision import transforms
-
-import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 sys.path.append("/src")
 
 from chick.config import cfg_to_dict, get_experiment_config
 from chick.dataset.h36m import H36MVideoDataset
-from chick.energies import inpaint_2d_energy, monocular_2d_energy, gaussian_2d_energy, learned_2d_energy, heatmap_energy, fit_gaussian_2d_energy
+from chick.energies import (
+    fit_gaussian_2d_energy,
+    gaussian_2d_energy,
+    heatmap_energy,
+    inpaint_2d_energy,
+    learned_2d_energy,
+    monocular_2d_energy,
+)
+from chick.heatmap import get_heatmaps, hrnet
 from chick.pipeline import SkeletonPipeline
 from chick.platform import platform
 from chick.projection import Projection
 from chick.utils.plot_utils import plot_2D, plot_3D
 from chick.utils.reproducibility import set_random_seed
 from chick.wehrbein.data.data_h36m import H36MDataset
-from chick.heatmap import hrnet, get_heatmaps
 from propose.propose.cameras.Camera import Camera, DummyCamera
 from propose.propose.evaluation.calibration import calibration
 from propose.propose.evaluation.mpjpe import mpjpe
 from propose.propose.poses.human36m import Human36mPose
-
 
 # Parameters
 cfg = get_experiment_config()
@@ -44,11 +49,32 @@ if __name__ == "__main__":
     #
     set_random_seed(cfg.seed)
 
-    actions = ['Directions', 'Discussion', 'Eating', 'Greeting', 'Phoning', 'Photo', 'Posing', 'Purchases', 'Sitting',
-               'SittingDown', 'Smoking', 'Waiting', 'WalkDog', 'WalkTogether', 'Walking']
+    actions = [
+        "Directions",
+        "Discussion",
+        "Eating",
+        "Greeting",
+        "Phoning",
+        "Photo",
+        "Posing",
+        "Purchases",
+        "Sitting",
+        "SittingDown",
+        "Smoking",
+        "Waiting",
+        "WalkDog",
+        "WalkTogether",
+        "Walking",
+    ]
     quick_eval_stride = 16
-    test_file = './dataset/testset_h36m.pickle'
-    dataset = H36MDataset(test_file, quick_eval=True, quick_eval_stride=quick_eval_stride, actions=actions, train_set=False)
+    test_file = "./dataset/testset_h36m.pickle"
+    dataset = H36MDataset(
+        test_file,
+        quick_eval=True,
+        quick_eval_stride=quick_eval_stride,
+        actions=actions,
+        train_set=False,
+    )
 
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=False
@@ -69,13 +95,17 @@ if __name__ == "__main__":
         if k > 10:
             exit()
 
-        gt_3D = batch['p3d_gt']
-        gauss_fits = batch['gauss_fits'].reshape(-1, 6)
+        gt_3D = batch["p3d_gt"]
+        gauss_fits = batch["gauss_fits"].reshape(-1, 6)
         mu = gauss_fits[:, [1, 2]]
-        sigma = torch.eye(2).unsqueeze(0).repeat(gauss_fits.shape[0], 1, 1).cuda() * gauss_fits[:, [3, 4]].unsqueeze(-1)
+        sigma = torch.eye(2).unsqueeze(0).repeat(
+            gauss_fits.shape[0], 1, 1
+        ).cuda() * gauss_fits[:, [3, 4]].unsqueeze(-1)
 
         dist = torch.distributions.MultivariateNormal(mu, covariance_matrix=sigma)
-        x_coords = torch.dstack(torch.meshgrid(torch.arange(-2, 2, 0.1), torch.arange(-2, 2, 0.1)))
+        x_coords = torch.dstack(
+            torch.meshgrid(torch.arange(-2, 2, 0.1), torch.arange(-2, 2, 0.1))
+        )
         x_coords = x_coords.reshape(-1, 1, 2).float().cuda()
 
         heatmap = dist.log_prob(x_coords).exp().sum(0).reshape(1, 1, 40, 40)
@@ -155,14 +185,19 @@ if __name__ == "__main__":
         stds[:, :, 16] = 1
 
         samples = []
-        print('sampling')
+        print("sampling")
         for _ in range(cfg.experiment.num_repeats):
             out = pipe.sample(
                 num_samples=cfg.experiment.num_samples,
                 num_frames=cfg.model.num_frames,
                 num_substeps=cfg.experiment.num_substeps,
                 energy_fn=partial(
-                    fit_gaussian_2d_energy, heatmap=heatmap_full, x_2d=input_2D, x_2d_std=stds, center=center, camera=camera
+                    fit_gaussian_2d_energy,
+                    heatmap=heatmap_full,
+                    x_2d=input_2D,
+                    x_2d_std=stds,
+                    center=center,
+                    camera=camera,
                 ),
                 energy_scale=cfg.experiment.energy_scale,
             )

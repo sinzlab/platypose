@@ -1,15 +1,18 @@
-import torch
-from torch import nn
-from tqdm import tqdm
-from chick.utils.wandb import download_wandb_artefact
 import os
 
+import torch
 import wandb
+from torch import nn
+from tqdm import tqdm
+
+from chick.utils.wandb import download_wandb_artefact
+
 
 class Projection(nn.Module):
     """
     Projects a 3D pose (N, 17 * 3) to a 2D pose (N, 17 * 2) using a multi-layer perceptron.
     """
+
     def __init__(self, num_joints=17):
         super().__init__()
         self.num_joints = num_joints
@@ -28,7 +31,9 @@ class Projection(nn.Module):
         # add the camera parameters to the input
         # x = torch.cat([x, cam_params.unsqueeze(1).repeat(1, x.shape[1], 1)], dim=-1)
 
-        return self.model(x, *args, **kwargs).reshape(x.shape[0], x.shape[1], self.num_joints, 2)
+        return self.model(x, *args, **kwargs).reshape(
+            x.shape[0], x.shape[1], self.num_joints, 2
+        )
 
     @classmethod
     def pretrain(cls, dataloader, num_epochs=1):
@@ -43,14 +48,14 @@ class Projection(nn.Module):
         for epoch in range(num_epochs):
             pbar = tqdm(dataloader)
             for (
-                    batch_cam,
-                    gt_3D,
-                    input_2D,
-                    action,
-                    subject,
-                    scale,
-                    bb_box,
-                    cam_ind,
+                batch_cam,
+                gt_3D,
+                input_2D,
+                action,
+                subject,
+                scale,
+                bb_box,
+                cam_ind,
             ) in pbar:
                 gt_3D[:, :, 0] = 0  # set the root to 0
 
@@ -125,5 +130,3 @@ class Projection(nn.Module):
         chick.to(chick.device)
 
         return chick
-
-

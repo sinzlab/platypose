@@ -80,8 +80,8 @@ class MPIIPose(YamlPose):
         :return: A Human3.6M pose.
         """
         pose_matrix = self.pose_matrix.copy()
-        pose_matrix = pose_matrix[:, MPII_2_H36M]
-        pose_matrix = np.insert(pose_matrix, 9, 0, axis=1)
+        pose_matrix = pose_matrix[..., MPII_2_H36M, :]
+        pose_matrix = np.insert(pose_matrix, 9, 0, axis=-2)
 
         pose = Human36mPose(pose_matrix)
         # pose.occluded_markers = self.occluded_markers[0, MPII_2_H36M, 0]
