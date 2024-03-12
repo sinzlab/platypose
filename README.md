@@ -1,4 +1,4 @@
-# 🐣 PlatyPose: EnerGy Guided diffusion for lifting human poses from 2D to 3D
+# 🐣 Platypose: EnerGy Guided diffusion for lifting human poses from 2D to 3D
 
 <p align="center">
   <img width="100%" src="assets/logo_wide.png" alt="Platypose Logo">
@@ -16,7 +16,7 @@ We propose to use the re-projection likelihood of the 3D pose as energy function
 ## Reproducing the results
 
 #### 1. Download the data
-Navigate to the [dataset](https://github.com/sinzlab/platypose/dataset) folder and follow the instructions in the `README.md` file.
+Navigate to the [dataset](/dataset) folder and follow the instructions in the `README.md` file.
 
 #### 2. Base docker image
 Ensure that you have the base image pulled from the Docker Hub.
@@ -34,7 +34,7 @@ docker-compose build base
 #### 4. Run the training
 To train the model run the following command:
 ```bash
-docker compose run -d --name platypose_train_0 -e NVIDIA_VISIBLE_DEVICES=0 train --experiment single_frame
+docker compose run -d --name platypose_train_0 -e NVIDIA_VISIBLE_DEVICES=0 train --experiment h36m
 ```
 this will spawn a docker container that will start the `main.py` script and will detach the process from the terminal.
 the `platypose_train_0` can be any name you want to give to the process. In the example 0 indicates the GPU id this process will use.
@@ -46,14 +46,14 @@ docker logs platypose_train_0
 #### 5. Run the evaluation
 To evaluate the model run the following command:
 ```bash
-docker compose run --name platypose_eval_0 -e NVIDIA_VISIBLE_DEVICES=0 eval --experiment single_frame
+docker compose run --name platypose_eval_0 -e NVIDIA_VISIBLE_DEVICES=0 eval --experiment h36m
 ```
 this will spawn a docker container that will start the `./scrips/eval.py` script.
 
 
 ## Documentation
 
-### Chick sampling
+### Platypose sampling
 Here is a short snippet on how to load in the model with pretrained weights and how to generate samples from the model.
 
 ```python
