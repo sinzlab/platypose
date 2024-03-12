@@ -4,7 +4,10 @@
   <img width="100%" src="assets/logo_wide.png" alt="Platypose Logo">
 </p>
 
-This repository is derived from [EGG diffusion](https://github.com/sinzlab/energy-guided-diffusion).
+> [**Platypose: Calibrated Zero-Shot Multi-Hypothesis 3D Human Motion Estimation**](https://arxiv.org/abs/2403.06164), \
+> Pawel A. Pierzchlewicz, Caio Oliviera, James Cotton, Fabian H. Sinz
+>
+> [[arXiv]](https://arxiv.org/abs/2403.06164)
 
 ## Reproducing the results
 
