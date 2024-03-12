@@ -8,14 +8,14 @@ from tqdm import tqdm
 
 sys.path.append("/src")
 
-from chick.config import cfg_to_dict, get_experiment_config
-from chick.dataset.h36m import H36MVideoDataset
-from chick.energies import energies
-from chick.pipeline import SkeletonPipeline
-from chick.platform import platform
-from chick.utils.palettes import palettes
-from chick.utils.plot_utils import plot_2D, plot_3D
-from chick.utils.reproducibility import set_random_seed
+from platypose.config import cfg_to_dict, get_experiment_config
+from platypose.dataset.h36m import H36MVideoDataset
+from platypose.energies import energies
+from platypose.pipeline import SkeletonPipeline
+from platypose.platform import platform
+from platypose.utils.palettes import palettes
+from platypose.utils.plot_utils import plot_2D, plot_3D
+from platypose.utils.reproducibility import set_random_seed
 from propose.propose.cameras.Camera import Camera, DummyCamera
 from propose.propose.evaluation.calibration import calibration
 from propose.propose.evaluation.mpjpe import mpjpe, pa_mpjpe
@@ -31,7 +31,7 @@ Cam = {
 
 if __name__ == "__main__":
     print(cfg)
-    platform.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
+    platform.init(project="platypose", entity="sinzlab", name=f"eval_{time.time()}")
     platform.config.update(cfg_to_dict(cfg))
 
     set_random_seed(cfg.seed)
@@ -218,21 +218,21 @@ if __name__ == "__main__":
         import matplotlib.pyplot as plt
 
         plt.figure(figsize=(10, 3))
-        plt.plot(wrist, c=palettes["chick"]["orange"], marker="o", lw=1, label="Wrist")
-        plt.plot(ankle, c=palettes["chick"]["red"], marker="o", lw=1, label="Ankle")
+        plt.plot(wrist, c=palettes["platypose"]["orange"], marker="o", lw=1, label="Wrist")
+        plt.plot(ankle, c=palettes["platypose"]["red"], marker="o", lw=1, label="Ankle")
 
         plt.fill_between(
             np.arange(0, 64),
             0,
             wrist.max(),
-            color=palettes["chick"]["black"],
+            color=palettes["platypose"]["black"],
             alpha=0.1,
         )
         plt.fill_between(
             np.arange(192, 256),
             0,
             wrist.max(),
-            color=palettes["chick"]["black"],
+            color=palettes["platypose"]["black"],
             alpha=0.1,
         )
 
@@ -261,14 +261,14 @@ if __name__ == "__main__":
         # import matplotlib.pyplot as plt
         #
         # plt.figure(figsize=(10, 3))
-        # plt.plot(angle_gt[0], c=palettes['chick']['orange'], lw=3, label='Ground Truth')
-        # plt.plot(angle[0], c=palettes['chick']['black'], lw=1, alpha=0.25, label='Hypothesis')
+        # plt.plot(angle_gt[0], c=palettes['platypose']['orange'], lw=3, label='Ground Truth')
+        # plt.plot(angle[0], c=palettes['platypose']['black'], lw=1, alpha=0.25, label='Hypothesis')
         # for i in range(1, cfg.experiment.num_samples * cfg.experiment.num_repeats):
-        #     plt.plot(angle[i], c=palettes['chick']['black'], lw=1, alpha=0.25)
+        #     plt.plot(angle[i], c=palettes['platypose']['black'], lw=1, alpha=0.25)
         #
         # # shade in the observed region 0:64 and 192:256
-        # plt.fill_between(np.arange(0, 64), -5, 5, color=palettes['chick']['black'], alpha=0.1)
-        # plt.fill_between(np.arange(192, 256), -5, 5, color=palettes['chick']['black'], alpha=0.1)
+        # plt.fill_between(np.arange(0, 64), -5, 5, color=palettes['platypose']['black'], alpha=0.1)
+        # plt.fill_between(np.arange(192, 256), -5, 5, color=palettes['platypose']['black'], alpha=0.1)
         #
         # plt.ylim(-5, 5)
         #
@@ -289,8 +289,8 @@ if __name__ == "__main__":
         # angle_gt = torch.atan2(joint_b[..., 1] - joint_a[..., 1], joint_b[..., 0] - joint_a[..., 0])
         #
         # plt.figure(figsize=(10, 3))
-        # plt.plot(angle[idx], c=palettes['chick']['black'], lw=3, label='Hypothesis')
-        # plt.plot(angle_gt[0], c=palettes['chick']['orange'], lw=3, label='Ground Truth')
+        # plt.plot(angle[idx], c=palettes['platypose']['black'], lw=3, label='Hypothesis')
+        # plt.plot(angle_gt[0], c=palettes['platypose']['orange'], lw=3, label='Ground Truth')
         # plt.legend(frameon=False)
         # plt.xlabel('Frame')
         # plt.ylabel('Knee angle')

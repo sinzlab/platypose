@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "chick"
+name = "platypose"
 version = "0.1.0"
 description = "Diffusion based pose lifting"
 authors = ["paul <ppierzc@gmail.copm>"]

@@ -16,7 +16,7 @@ We propose to use the re-projection likelihood of the 3D pose as energy function
 ## Reproducing the results
 
 #### 1. Download the data
-Navigate to the [dataset](https://github.com/sinzlab/chick/dataset) folder and follow the instructions in the `README.md` file.
+Navigate to the [dataset](https://github.com/sinzlab/platypose/dataset) folder and follow the instructions in the `README.md` file.
 
 #### 2. Base docker image
 Ensure that you have the base image pulled from the Docker Hub.
@@ -57,9 +57,9 @@ this will spawn a docker container that will start the `./scrips/eval.py` script
 Here is a short snippet on how to load in the model with pretrained weights and how to generate samples from the model.
 
 ```python
-from chick.pipeline import SkeletonPipeline
+from platypose.pipeline import SkeletonPipeline
 
-pipe = SkeletonPipeline.from_pretrained("sinzlab/chick/MDM_H36m_1_frame_50_steps:latest")
+pipe = SkeletonPipeline.from_pretrained("sinzlab/platypose/MDM_H36m_1_frame_50_steps:latest")
 
 samples_progressive = pipe.sample(
     num_samples=10,
@@ -77,7 +77,7 @@ sample = _sample["sample"]  # get the 3D pose sample
 Experiments are configured via YAML files and can be overriden via command line arguments.
 The YAML files are located in the `experiments` folder.
 
-The YAML file overrides the default config file located in `chick/config.py`.
+The YAML file overrides the default config file located in `platypose/config.py`.
 
 An example config file is shown below:
 ```yaml
@@ -85,7 +85,7 @@ experiment:
   num_samples: 50
   energy_scale: 30
   num_frames: 1
-  model: "sinzlab/chick/MDM_H36m_1_frame_50_steps:latest"
+  model: "sinzlab/platypose/MDM_H36m_1_frame_50_steps:latest"
   seed: 1
   projection: "dummy"
 ```

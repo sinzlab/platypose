@@ -5,7 +5,7 @@ import wandb
 from torch import nn
 from tqdm import tqdm
 
-from chick.utils.wandb import download_wandb_artefact
+from platypose.utils.wandb import download_wandb_artefact
 
 
 class Projection(nn.Module):
@@ -114,19 +114,19 @@ class Projection(nn.Module):
 
     @classmethod
     def from_pretrained(
-        cls, artefact="sinzlab/chick/projection_cpn_ft_h36m_dbb:latest"
+        cls, artefact="sinzlab/platypose/projection_cpn_ft_h36m_dbb:latest"
     ):
         """
         Loads a pretrained model from wandb
         :param artefact: wandb artifact name
         :return: None
         """
-        chick = cls()
+        platypose = cls()
 
-        state_dict = chick._get_state_dict(artefact)
+        state_dict = platypose._get_state_dict(artefact)
 
-        chick.model.load_state_dict(state_dict)
-        chick.requires_grad_(True).eval()
-        chick.to(chick.device)
+        platypose.model.load_state_dict(state_dict)
+        platypose.requires_grad_(True).eval()
+        platypose.to(platypose.device)
 
-        return chick
+        return platypose

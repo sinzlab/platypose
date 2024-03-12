@@ -12,7 +12,7 @@ palettes = {
         "pink": "#D81B60",  # Ruby
         "green": "#004D40",  # Blue Green
     },
-    "chick": {
+    "platypose": {
         "black": "#221114",
         "yellow": "#ffcf49",
         "orange": "#ff9918",

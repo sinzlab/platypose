@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from chick.config import get_experiment_config
-from chick.energies import full_gaussian_2d_energy, w_monocular_2d_energy
-from chick.pipeline import SkeletonPipeline
-from chick.utils.reproducibility import set_random_seed
-from chick.wehrbein.data.data_h36m import H36MDataset
+from platypose.config import get_experiment_config
+from platypose.energies import full_gaussian_2d_energy, w_monocular_2d_energy
+from platypose.pipeline import SkeletonPipeline
+from platypose.utils.reproducibility import set_random_seed
+from platypose.wehrbein.data.data_h36m import H36MDataset
 from propose.propose.cameras.Camera import Camera
 from propose.propose.evaluation.mpjpe import mpjpe
 from propose.propose.poses.human36m import MPII_2_H36M, Human36mPose, MPIIPose

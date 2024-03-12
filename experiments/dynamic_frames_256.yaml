@@ -2,7 +2,7 @@ seed: 1
 
 model:
   num_frames: 256
-  name: "sinzlab/chick/MDM_H36m_256_frames_50_steps:v2"
+  name: "sinzlab/platypose/MDM_H36m_256_frames_50_steps:v2"
 
 train:
   augment_length: True

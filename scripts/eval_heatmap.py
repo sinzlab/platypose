@@ -12,9 +12,9 @@ from tqdm import tqdm
 
 sys.path.append("/src")
 
-from chick.config import cfg_to_dict, get_experiment_config
-from chick.dataset.h36m import H36MVideoDataset
-from chick.energies import (
+from platypose.config import cfg_to_dict, get_experiment_config
+from platypose.dataset.h36m import H36MVideoDataset
+from platypose.energies import (
     fit_gaussian_2d_energy,
     gaussian_2d_energy,
     heatmap_energy,
@@ -22,13 +22,13 @@ from chick.energies import (
     learned_2d_energy,
     monocular_2d_energy,
 )
-from chick.heatmap import get_heatmaps, hrnet
-from chick.pipeline import SkeletonPipeline
-from chick.platform import platform
-from chick.projection import Projection
-from chick.utils.plot_utils import plot_2D, plot_3D
-from chick.utils.reproducibility import set_random_seed
-from chick.wehrbein.data.data_h36m import H36MDataset
+from platypose.heatmap import get_heatmaps, hrnet
+from platypose.pipeline import SkeletonPipeline
+from platypose.platform import platform
+from platypose.projection import Projection
+from platypose.utils.plot_utils import plot_2D, plot_3D
+from platypose.utils.reproducibility import set_random_seed
+from platypose.wehrbein.data.data_h36m import H36MDataset
 from propose.propose.cameras.Camera import Camera, DummyCamera
 from propose.propose.evaluation.calibration import calibration
 from propose.propose.evaluation.mpjpe import mpjpe
@@ -44,7 +44,7 @@ Cam = {
 
 if __name__ == "__main__":
     # print(cfg)
-    # platform.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
+    # platform.init(project="platypose", entity="sinzlab", name=f"eval_{time.time()}")
     # platform.config.update(cfg_to_dict(cfg))
     #
     set_random_seed(cfg.seed)

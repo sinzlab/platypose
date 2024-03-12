@@ -2,7 +2,7 @@ seed: 1
 
 model:
   num_frames: 29
-  name: "sinzlab/chick/MDM_H36m_30_frames_50_steps:latest"
+  name: "sinzlab/platypose/MDM_H36m_30_frames_50_steps:latest"
 
 experiment:
   num_samples: 25

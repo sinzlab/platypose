@@ -4,11 +4,11 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 
-from chick.diffusion.fp16_util import MixedPrecisionTrainer
-from chick.diffusion.resample import UniformSampler
-from chick.platform import platform
-from chick.utils.model_util import create_model_and_diffusion
-from chick.utils.wandb import download_wandb_artefact
+from platypose.diffusion.fp16_util import MixedPrecisionTrainer
+from platypose.diffusion.resample import UniformSampler
+from platypose.platform import platform
+from platypose.utils.model_util import create_model_and_diffusion
+from platypose.utils.wandb import download_wandb_artefact
 
 
 class SkeletonPipeline(nn.Module):
@@ -113,7 +113,7 @@ class SkeletonPipeline(nn.Module):
     @classmethod
     def from_pretrained(
         cls,
-        diffusion_artefact="sinzlab/chick/MDM_H36m_30_frames_50_steps:latest",
+        diffusion_artefact="sinzlab/platypose/MDM_H36m_30_frames_50_steps:latest",
         finetune=False,
     ):
         """
@@ -121,9 +121,9 @@ class SkeletonPipeline(nn.Module):
         :param diffusion_artefact: wandb artifact name
         :return: None
         """
-        chick = cls()
+        platypose = cls()
 
-        state_dict = chick._get_state_dict(diffusion_artefact)
+        state_dict = platypose._get_state_dict(diffusion_artefact)
 
         if finetune:
             # remove parameters that are part of `input_process` and `output_process`
@@ -133,31 +133,31 @@ class SkeletonPipeline(nn.Module):
                 if not (k.startswith("input_process") or k.startswith("output_process"))
             }
 
-        # chick.model.load_state_dict(state_dict)
-        # chick.requires_grad_(True).eval()
-        # chick.to(chick.device)
+        # platypose.model.load_state_dict(state_dict)
+        # platypose.requires_grad_(True).eval()
+        # platypose.to(platypose.device)
 
         # load the model excluding the input and output process
-        chick.model.load_state_dict(state_dict, strict=False)
+        platypose.model.load_state_dict(state_dict, strict=False)
 
-        chick.requires_grad_(True).eval()
-        chick.to(chick.device)
+        platypose.requires_grad_(True).eval()
+        platypose.to(platypose.device)
 
         # parallelize the model to multiple GPUs
         avaliable_gpus = torch.cuda.device_count()
-        chick.model = nn.DataParallel(
-            chick.model, device_ids=list(range(avaliable_gpus))
+        platypose.model = nn.DataParallel(
+            platypose.model, device_ids=list(range(avaliable_gpus))
         )
 
         # if finetune:
         #     # freeze the weights that are not part of the input and output process
-        #     for name, param in chick.model.named_parameters():
+        #     for name, param in platypose.model.named_parameters():
         #         if not (name.startswith("input_process") or name.startswith("output_process")):
         #             param.requires_grad = False
         #         else:
         #             param.requires_grad = True
 
-        return chick
+        return platypose
 
     @classmethod
     def pretrain(cls, dataloader, cfg):

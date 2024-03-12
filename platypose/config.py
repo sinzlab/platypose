@@ -36,7 +36,7 @@ _C.experiment.num_cameras = 1
 
 _C.model = CN()
 _C.model.num_frames = 1
-_C.model.name = "sinzlab/chick/MDM_H36m_1_frame_50_steps:latest"
+_C.model.name = "sinzlab/platypose/MDM_H36m_1_frame_50_steps:latest"
 _C.model.short_name = "MDM_H36m_1_frame_50_steps"  # Overwritten when config is loaded
 
 _C.train = CN()

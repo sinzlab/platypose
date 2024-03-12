@@ -4,9 +4,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Laplace, MultivariateNormal, Normal, Distribution
 
-from chick.projection import Projection
-from chick.utils.plot_utils import plot_2D
-from chick.utils.types import Energy
+from platypose.projection import Projection
+from platypose.utils.plot_utils import plot_2D
+from platypose.utils.types import Energy
 from propose.propose.poses.human36m import Human36mPose
 
 # proj = Projection.from_pretrained()

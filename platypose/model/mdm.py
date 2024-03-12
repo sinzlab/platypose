@@ -1,11 +1,12 @@
+import clip
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from platypose.model.transformer import TransformerUNet
+
 # from model.rotation2xyz import Rotation2xyz
-from chick.model.encoder import SkeletonEncoder
-from chick.model.transformer import MartinezTransformerEncoderLayer, TransformerUNet
 
 
 class MDM(nn.Module):
@@ -62,12 +63,11 @@ class MDM(nn.Module):
         self.clip_dim = clip_dim
         self.action_emb = kargs.get("action_emb", None)
 
-        self.input_feats = 51  # 166 #self.njoints * self.nfeats
+        self.input_feats = self.njoints * self.nfeats
 
         self.normalize_output = kargs.get("normalize_encoder_output", False)
 
-        self.cond_mode = "no_cond"  # kargs.get('cond_mode', 'no_cond')
-        # print('cond_mode', self.cond_mode)
+        self.cond_mode = kargs.get("cond_mode", "no_cond")
         self.cond_mask_prob = kargs.get("cond_mask_prob", 0.0)
         self.arch = arch
         self.gru_emb_dim = self.latent_dim if self.arch == "gru" else 0
@@ -77,8 +77,6 @@ class MDM(nn.Module):
 
         self.sequence_pos_encoder = PositionalEncoding(self.latent_dim, self.dropout)
         self.emb_trans_dec = emb_trans_dec
-
-        self.skeleton_encoder = SkeletonEncoder(latent_dim=self.latent_dim)
 
         if self.arch == "trans_enc":
             seqTransEncoderLayer = nn.TransformerEncoderLayer(
@@ -105,7 +103,6 @@ class MDM(nn.Module):
             self.seqTransEncoder = TransformerUNet(
                 seqTransEncoderLayer, num_layers=self.num_layers
             )
-
         elif self.arch == "trans_dec":
             print("TRANS_DEC init")
             seqTransDecoderLayer = nn.TransformerDecoderLayer(
@@ -139,6 +136,9 @@ class MDM(nn.Module):
             if "text" in self.cond_mode:
                 self.embed_text = nn.Linear(self.clip_dim, self.latent_dim)
                 print("EMBED TEXT")
+                print("Loading CLIP...")
+                self.clip_version = clip_version
+                self.clip_model = self.load_and_freeze_clip(clip_version)
             if "action" in self.cond_mode:
                 self.embed_action = EmbedAction(self.num_actions, self.latent_dim)
                 print("EMBED ACTION")
@@ -156,8 +156,23 @@ class MDM(nn.Module):
             if not name.startswith("clip_model.")
         ]
 
+    def load_and_freeze_clip(self, clip_version):
+        clip_model, clip_preprocess = clip.load(
+            clip_version, device="cpu", jit=False
+        )  # Must set jit=False for training
+        clip.model.convert_weights(
+            clip_model
+        )  # Actually this line is unnecessary since clip by default already on float16
+
+        # Freeze CLIP weights
+        clip_model.eval()
+        for p in clip_model.parameters():
+            p.requires_grad = False
+
+        return clip_model
+
     def mask_cond(self, cond, force_mask=False):
-        frames, bs, d = cond.shape
+        bs, d = cond.shape
         if force_mask:
             return torch.zeros_like(cond)
         elif self.training and self.cond_mask_prob > 0.0:
@@ -170,12 +185,41 @@ class MDM(nn.Module):
         else:
             return cond
 
+    def encode_text(self, raw_text):
+        # raw_text - list (batch_size length) of strings with input text prompts
+        device = next(self.parameters()).device
+        max_text_len = (
+            20 if self.dataset in ["humanml", "kit"] else None
+        )  # Specific hardcoding for humanml dataset
+        if max_text_len is not None:
+            default_context_length = 77
+            context_length = max_text_len + 2  # start_token + 20 + end_token
+            assert context_length < default_context_length
+            texts = clip.tokenize(
+                raw_text, context_length=context_length, truncate=True
+            ).to(
+                device
+            )  # [bs, context_length] # if n_tokens > context_length -> will truncate
+            # print('texts', texts.shape)
+            zero_pad = torch.zeros(
+                [texts.shape[0], default_context_length - context_length],
+                dtype=texts.dtype,
+                device=texts.device,
+            )
+            texts = torch.cat([texts, zero_pad], dim=1)
+            # print('texts after pad', texts.shape, texts)
+        else:
+            texts = clip.tokenize(raw_text, truncate=True).to(
+                device
+            )  # [bs, context_length] # if n_tokens > 77 -> will truncate
+        return self.clip_model.encode_text(texts).float()
+
     def forward(self, x, timesteps, y=None):
         """
         x: [batch_size, njoints, nfeats, max_frames], denoted x_t in the paper
         timesteps: [batch_size] (int)
         """
-        bs, nframes, nfeats = x.shape
+        bs, njoints, nfeats, nframes = x.shape
         emb = self.embed_timestep(timesteps)  # [1, bs, d]
 
         force_mask = y.get("uncond", False)
@@ -185,20 +229,17 @@ class MDM(nn.Module):
         if "action" in self.cond_mode:
             action_emb = self.embed_action(y["action"])
             emb += self.mask_cond(action_emb, force_mask=force_mask)
-        if "skeleton" in self.cond_mode:
-            enc_skeleton = self.skeleton_encoder(y["skeleton"])
-            emb = self.mask_cond(enc_skeleton, force_mask=force_mask) + emb
 
-        # if self.arch == "gru":
-        #     x_reshaped = x.reshape(bs, njoints * nfeats, 1, nframes)
-        #     emb_gru = emb.repeat(nframes, 1, 1)  # [#frames, bs, d]
-        #     emb_gru = emb_gru.permute(1, 2, 0)  # [bs, d, #frames]
-        #     emb_gru = emb_gru.reshape(
-        #         bs, self.latent_dim, 1, nframes
-        #     )  # [bs, d, 1, #frames]
-        #     x = torch.cat(
-        #         (x_reshaped, emb_gru), axis=1
-        #     )  # [bs, d+joints*feat, 1, #frames]
+        if self.arch == "gru":
+            x_reshaped = x.reshape(bs, njoints * nfeats, 1, nframes)
+            emb_gru = emb.repeat(nframes, 1, 1)  # [#frames, bs, d]
+            emb_gru = emb_gru.permute(1, 2, 0)  # [bs, d, #frames]
+            emb_gru = emb_gru.reshape(
+                bs, self.latent_dim, 1, nframes
+            )  # [bs, d, 1, #frames]
+            x = torch.cat(
+                (x_reshaped, emb_gru), axis=1
+            )  # [bs, d+joints*feat, 1, #frames]
 
         x = self.input_process(x)
 
@@ -206,18 +247,6 @@ class MDM(nn.Module):
             # adding the timestep embed
             xseq = torch.cat((emb, x), axis=0)  # [seqlen+1, bs, d]
             xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d]
-
-            # if in train mode
-            # if self.training:
-            #     mask_prob = 0.9 # rate at which the mask is applied otherwise full sequence is used
-            #
-            #     if torch.rand(1) < mask_prob and xseq.shape[0] > 8:
-            #         # block masking of xseq, set random block lengths to 0
-            #         maskseq_length = torch.randint(low=int(xseq.shape[0] * 0.7), high=int(xseq.shape[0] * 0.9), size=(1,)).item()
-            #         masksq_start = torch.randint(low=1, high=xseq.shape[0] - maskseq_length, size=(1,)).item()
-            #
-            #         xseq[masksq_start:masksq_start+maskseq_length] = 0
-
             output = self.seqTransEncoder(xseq)[
                 1:
             ]  # , src_key_padding_mask=~maskseq)  # [seqlen, bs, d]
@@ -247,17 +276,16 @@ class MDM(nn.Module):
             xseq = self.sequence_pos_encoder(xseq)  # [seqlen, bs, d]
             output, _ = self.gru(xseq)
 
-        output = self.output_process(output)
-
-        output = output[:, -nframes:]  # [bs, njoints, nfeats, nframes]
-
+        output = self.output_process(output)  # [bs, njoints, nfeats, nframes]
         return output
 
     def _apply(self, fn):
         super()._apply(fn)
+        self.rot2xyz.smpl_model._apply(fn)
 
     def train(self, *args, **kwargs):
         super().train(*args, **kwargs)
+        self.rot2xyz.smpl_model.train(*args, **kwargs)
 
 
 class PositionalEncoding(nn.Module):
@@ -305,18 +333,15 @@ class InputProcess(nn.Module):
         self.data_rep = data_rep
         self.input_feats = input_feats
         self.latent_dim = latent_dim
-
         self.poseEmbedding = nn.Linear(self.input_feats, self.latent_dim)
         if self.data_rep == "rot_vel":
             self.velEmbedding = nn.Linear(self.input_feats, self.latent_dim)
 
     def forward(self, x):
-        # (bs, nframes, nfeats)
-        # bs, njoints, nfeats, nframes = x.shape
-        # x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints * nfeats)
-        x = x.permute((1, 0, 2))
+        bs, njoints, nfeats, nframes = x.shape
+        x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints * nfeats)
 
-        if self.data_rep in ["rot6d", "xyz", "hml_vec", "h36m"]:
+        if self.data_rep in ["rot6d", "xyz", "hml_vec"]:
             x = self.poseEmbedding(x)  # [seqlen, bs, d]
             return x
         elif self.data_rep == "rot_vel":
@@ -343,7 +368,7 @@ class OutputProcess(nn.Module):
 
     def forward(self, output):
         nframes, bs, d = output.shape
-        if self.data_rep in ["rot6d", "xyz", "hml_vec", "h36m"]:
+        if self.data_rep in ["rot6d", "xyz", "hml_vec"]:
             output = self.poseFinal(output)  # [seqlen, bs, 150]
         elif self.data_rep == "rot_vel":
             first_pose = output[[0]]  # [1, bs, d]
@@ -353,11 +378,8 @@ class OutputProcess(nn.Module):
             output = torch.cat((first_pose, vel), axis=0)  # [seqlen, bs, 150]
         else:
             raise ValueError
-        output = output.permute(
-            (1, 0, 2)
-        )  # (nframes, bs, njoints * nfeats) -> (bs, nframes, nfeats)
-        # output = output.reshape(nframes, bs, self.njoints, self.nfeats)
-        # output = output.permute(1, 2, 3, 0)  # [bs, njoints, nfeats, nframes]
+        output = output.reshape(nframes, bs, self.njoints, self.nfeats)
+        output = output.permute(1, 2, 3, 0)  # [bs, njoints, nfeats, nframes]
         return output
 
 

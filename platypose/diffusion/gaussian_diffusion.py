@@ -15,8 +15,8 @@ import torch
 import torch as th
 import gc
 
-from chick.diffusion.losses import discretized_gaussian_log_likelihood, normal_kl
-from chick.diffusion.nn import mean_flat, sum_flat
+from platypose.diffusion.losses import discretized_gaussian_log_likelihood, normal_kl
+from platypose.diffusion.nn import mean_flat, sum_flat
 from propose.propose.poses.human36m import Human36mPose
 
 

@@ -5,11 +5,11 @@ from typing import Literal
 import numpy as np
 import torch.utils.data as data
 
-from chick.dataset.camera import normalize_screen_coordinates, world_to_camera
-from chick.dataset.generator import ChunkedGenerator
-from chick.dataset.mocap_dataset import MocapDataset
-from chick.dataset.skeleton import Skeleton
-from chick.utils.reproducibility import deterministic_random
+from platypose.dataset.camera import normalize_screen_coordinates, world_to_camera
+from platypose.dataset.generator import ChunkedGenerator
+from platypose.dataset.mocap_dataset import MocapDataset
+from platypose.dataset.skeleton import Skeleton
+from platypose.utils.reproducibility import deterministic_random
 
 DatasetMode = Literal["train", "eval"]
 

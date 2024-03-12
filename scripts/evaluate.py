@@ -15,15 +15,15 @@ from propose.propose.poses.human36m import Human36mPose
 
 sys.path.append("/src")
 
-from chick.config import cfg_to_dict, get_experiment_config
-from chick.dataset.temporal import Human36mDataset
-from chick.energies import energies
-from chick.pipeline import SkeletonPipeline
-from chick.platform import platform
-from chick.utils.palettes import palettes
-from chick.utils.plot_utils import plot_2D, plot_3D, plot_arrows
-from chick.model.simplebaseline import LinearModel, init_weights
-from chick.utils.reproducibility import set_random_seed
+from platypose.config import cfg_to_dict, get_experiment_config
+from platypose.dataset.temporal import Human36mDataset
+from platypose.energies import energies
+from platypose.pipeline import SkeletonPipeline
+from platypose.platform import platform
+from platypose.utils.palettes import palettes
+from platypose.utils.plot_utils import plot_2D, plot_3D, plot_arrows
+from platypose.model.simplebaseline import LinearModel, init_weights
+from platypose.utils.reproducibility import set_random_seed
 from propose.propose.cameras.Camera import Camera, DummyCamera
 from propose.propose.poses.human36m import MPIIPose
 from propose.propose.evaluation.calibration import calibration
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     print("Last modified: %s" % time.ctime(os.path.getmtime(__file__)))
 
     print(cfg)
-    platform.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
+    platform.init(project="platypose", entity="sinzlab", name=f"eval_{time.time()}")
     platform.config.update(cfg_to_dict(cfg))
 
     set_random_seed(cfg.seed)
@@ -461,8 +461,8 @@ if __name__ == "__main__":
         #     d2 = d2 - d2[..., [0], :]
         #     aux = Human36mPose(d2)
         #
-        #     # aux.plot(ax, plot_type="none", c=palettes["chick"]["yellow"], alpha=1 * 0.2, lw=3)
-        #     aux.plot(ax, plot_type="none", c=palettes["chick"]["black"], alpha=frame/64 * 0.2, lw=3)
+        #     # aux.plot(ax, plot_type="none", c=palettes["platypose"]["yellow"], alpha=1 * 0.2, lw=3)
+        #     aux.plot(ax, plot_type="none", c=palettes["platypose"]["black"], alpha=frame/64 * 0.2, lw=3)
         #
         #     plt.axis('off')
         #
@@ -504,24 +504,24 @@ if __name__ == "__main__":
         #
         # for sample_idx in range(1):
         #     for i in range(0, 127):
-        #         ax.plot(s[sample_idx, i:i + 2, 3, 0], s[sample_idx, i:i + 2, 3, 1], s[sample_idx, i:i + 2, 3, 2], c=palettes["chick"]["black"],
+        #         ax.plot(s[sample_idx, i:i + 2, 3, 0], s[sample_idx, i:i + 2, 3, 1], s[sample_idx, i:i + 2, 3, 2], c=palettes["platypose"]["black"],
         #                 lw=1, alpha=(i + 64) / 256, zorder=10)
-        #         ax.plot(s[sample_idx, i:i + 2, 6, 0], s[sample_idx, i:i + 2, 6, 1], s[sample_idx, i:i + 2, 6, 2], c=palettes["chick"]["black"],
+        #         ax.plot(s[sample_idx, i:i + 2, 6, 0], s[sample_idx, i:i + 2, 6, 1], s[sample_idx, i:i + 2, 6, 2], c=palettes["platypose"]["black"],
         #                 lw=1, alpha=(i + 64) / 256, zorder=10)
-        #         ax.plot(s[sample_idx, i:i + 2, 13, 0], s[sample_idx, i:i + 2, 13, 1], s[sample_idx, i:i + 2, 13, 2], c=palettes["chick"]["black"],
+        #         ax.plot(s[sample_idx, i:i + 2, 13, 0], s[sample_idx, i:i + 2, 13, 1], s[sample_idx, i:i + 2, 13, 2], c=palettes["platypose"]["black"],
         #                 lw=1, alpha=(i + 64) / 256, zorder=10)
-        #         ax.plot(s[sample_idx, i:i + 2, 16, 0], s[sample_idx, i:i + 2, 16, 1], s[sample_idx, i:i + 2, 16, 2], c=palettes["chick"]["black"],
+        #         ax.plot(s[sample_idx, i:i + 2, 16, 0], s[sample_idx, i:i + 2, 16, 1], s[sample_idx, i:i + 2, 16, 2], c=palettes["platypose"]["black"],
         #                 lw=1, alpha=(i + 64) / 256, zorder=10)
         #
         #     # for frame in frames:
-        #     #     ax.scatter(s[0, frame, :, 0], s[0, frame, :, 1], s[0, frame, :, 2], c=palettes["chick"]["yellow"], s=10, zorder=10)
-        #     #     ax.scatter(s[0, frame, :, 0], s[0, frame, :, 1], s[0, frame, :, 2], c=palettes["chick"]["red"], s=10, zorder=10, alpha=frame / 255)
+        #     #     ax.scatter(s[0, frame, :, 0], s[0, frame, :, 1], s[0, frame, :, 2], c=palettes["platypose"]["yellow"], s=10, zorder=10)
+        #     #     ax.scatter(s[0, frame, :, 0], s[0, frame, :, 1], s[0, frame, :, 2], c=palettes["platypose"]["red"], s=10, zorder=10, alpha=frame / 255)
         #
         #     aux = Human36mPose(s[sample_idx, frames])
         #     aux.plot(
         #         ax,
         #         plot_type="none",
-        #         c=palettes["chick"]["yellow"],
+        #         c=palettes["platypose"]["yellow"],
         #         lw=1.5,
         #         zorder=10,
         #     )
@@ -530,7 +530,7 @@ if __name__ == "__main__":
         #     # aux.plot(
         #     #     ax,
         #     #     plot_type="none",
-        #     #     c=palettes["chick"]["black"],
+        #     #     c=palettes["platypose"]["black"],
         #     #     lw=1.5,
         #     #     zorder=10,
         #     # )
@@ -540,7 +540,7 @@ if __name__ == "__main__":
         #         aux.plot(
         #             ax,
         #             plot_type="none",
-        #             c=palettes["chick"]["black"],
+        #             c=palettes["platypose"]["black"],
         #             lw=1.5,
         #             alpha=(frame + 64) / (128 * 2),
         #             zorder=10,
@@ -550,7 +550,7 @@ if __name__ == "__main__":
         #         aux.plot(
         #             ax,
         #             plot_type="none",
-        #             c=palettes["chick"]["red"],
+        #             c=palettes["platypose"]["red"],
         #             lw=1.5,
         #             alpha=(frame + 64) / (128 * 2),
         #             zorder=10,
@@ -568,7 +568,7 @@ if __name__ == "__main__":
         #     0,
         #     arrowstyle=arrowstyle,
         #     mutation_scale=1,
-        #     color=palettes["chick"]["black"],
+        #     color=palettes["platypose"]["black"],
         # )
         # ax.arrow3D(
         #     -1.32,
@@ -579,7 +579,7 @@ if __name__ == "__main__":
         #     0,
         #     arrowstyle=arrowstyle,
         #     mutation_scale=1,
-        #     color=palettes["chick"]["black"],
+        #     color=palettes["platypose"]["black"],
         # )
         # ax.arrow3D(
         #     -1.3,
@@ -590,7 +590,7 @@ if __name__ == "__main__":
         #     1/2,
         #     arrowstyle=arrowstyle,
         #     mutation_scale=1,
-        #     color=palettes["chick"]["black"],
+        #     color=palettes["platypose"]["black"],
         # )
         #
         # plt.savefig(

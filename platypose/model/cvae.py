@@ -3,7 +3,7 @@ from common.h36m_dataset import Human36mDataset
 from common.load_data_hm36 import Fusion
 from common.opt import opts
 
-from chick.model.cae import CAE
+from platypose.model.cae import CAE
 
 
 class CVAE(CAE):
@@ -42,7 +42,7 @@ class CVAE(CAE):
 
     @classmethod
     def build(cls):
-        from chick.model.transformer import Decoder_TRANSFORMER, Encoder_TRANSFORMER
+        from platypose.model.transformer import Decoder_TRANSFORMER, Encoder_TRANSFORMER
 
         encoder = Encoder_TRANSFORMER()
         decoder = Decoder_TRANSFORMER()

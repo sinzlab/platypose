@@ -10,15 +10,15 @@ import torch
 from torch.optim import AdamW
 from tqdm import tqdm
 
-from chick.diffusion import logger
-from chick.diffusion.fp16_util import MixedPrecisionTrainer
-from chick.diffusion.resample import (
+from platypose.diffusion import logger
+from platypose.diffusion.fp16_util import MixedPrecisionTrainer
+from platypose.diffusion.resample import (
     LossAwareSampler,
     UniformSampler,
     create_named_schedule_sampler,
 )
-from chick.model.cfg_sampler import ClassifierFreeSampleModel
-from chick.utils import dist_util
+from platypose.model.cfg_sampler import ClassifierFreeSampleModel
+from platypose.utils import dist_util
 
 # For ImageNet experiments, this was a good default value.
 # We found that the lg_loss_scale quickly climbed to

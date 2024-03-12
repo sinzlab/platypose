@@ -5,7 +5,7 @@ from matplotlib.patches import ArrowStyle, FancyArrowPatch
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from mpl_toolkits.mplot3d.proj3d import proj_transform
 
-from chick.utils.palettes import palettes
+from platypose.utils.palettes import palettes
 from propose.propose.poses.human36m import Human36mPose, MPIIPose
 
 
@@ -56,7 +56,7 @@ def plot_arrows(ax, lengths=[1, 2, 1]):
         0,
         arrowstyle=arrowstyle,
         mutation_scale=1,
-        color=palettes["chick"]["black"],
+        color=palettes["platypose"]["black"],
     )
     ax.arrow3D(
         -0.5,
@@ -67,7 +67,7 @@ def plot_arrows(ax, lengths=[1, 2, 1]):
         0,
         arrowstyle=arrowstyle,
         mutation_scale=1,
-        color=palettes["chick"]["black"],
+        color=palettes["platypose"]["black"],
     )
     ax.arrow3D(
         -0.5,
@@ -78,7 +78,7 @@ def plot_arrows(ax, lengths=[1, 2, 1]):
         lengths[2] / 4,
         arrowstyle=arrowstyle,
         mutation_scale=1,
-        color=palettes["chick"]["black"],
+        color=palettes["platypose"]["black"],
     )
 
 
@@ -125,11 +125,11 @@ def plot_2D(projected_gt_3D, input_2D, samples, name, n_frames, alpha=0.1):
         for sample in samples:
             aux = Human36mPose(sample)
             aux.plot(
-                ax, plot_type="none", c=palettes["chick"]["black"], alpha=alpha, lw=1
+                ax, plot_type="none", c=palettes["platypose"]["black"], alpha=alpha, lw=1
             )
 
         # aux = Human36mPose(input_2D)
-        # aux.plot(ax, plot_type="none", c=palettes["chick"]["red"], lw=2)
+        # aux.plot(ax, plot_type="none", c=palettes["platypose"]["red"], lw=2)
         #
         aux = Human36mPose(projected_gt_3D)
         aux.plot(ax, plot_type="none", c=palettes["candy"]["blue"], lw=2, alpha=0.5)
@@ -146,12 +146,12 @@ def plot_2D(projected_gt_3D, input_2D, samples, name, n_frames, alpha=0.1):
 
                 for sample in samples:  # don't know if this makes sense, tbh
                     aux = Human36mPose(sample[..., i])
-                    aux.plot(ax, plot_type="none", c=palettes["chick"]["black"])
+                    aux.plot(ax, plot_type="none", c=palettes["platypose"]["black"])
 
                 aux = Human36mPose(projected_gt_3D[..., i])
-                aux.plot(ax, plot_type="none", c=palettes["chick"]["red"])
+                aux.plot(ax, plot_type="none", c=palettes["platypose"]["red"])
                 aux = Human36mPose(input_2D[..., i])
-                aux.plot(ax, plot_type="none", c=palettes["chick"]["black"])
+                aux.plot(ax, plot_type="none", c=palettes["platypose"]["black"])
 
                 g.add(fig)
 
@@ -192,14 +192,14 @@ def plot_3D(gt_3D, samples, name, alpha=0.1, rotation=0):
                 aux.plot(
                     ax,
                     plot_type="none",
-                    c=palettes["chick"]["black"],
+                    c=palettes["platypose"]["black"],
                     alpha=alpha,
                     lw=1,
                     zorder=10,
                 )
 
             aux = Human36mPose(gt_3D)
-            aux.plot(ax, plot_type="none", c=palettes["chick"]["red"], lw=2, zorder=20)
+            aux.plot(ax, plot_type="none", c=palettes["platypose"]["red"], lw=2, zorder=20)
 
             plt.gca().set_box_aspect(aspect=(0.5, 0.5, 1))
 
@@ -243,9 +243,9 @@ def plot_3D(gt_3D, samples, name, alpha=0.1, rotation=0):
 
                 for sample in samples:  # don't know if this makes sense, tbh
                     aux = Human36mPose(sample[..., i])
-                    aux.plot(ax, plot_type="none", c=palettes["chick"]["black"], lw=2)
+                    aux.plot(ax, plot_type="none", c=palettes["platypose"]["black"], lw=2)
 
                 aux = Human36mPose(gt_3D[..., i])
-                aux.plot(ax, plot_type="none", c=palettes["chick"]["red"], lw=2)
+                aux.plot(ax, plot_type="none", c=palettes["platypose"]["red"], lw=2)
 
                 g.add(fig)

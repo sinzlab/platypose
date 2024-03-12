@@ -10,14 +10,14 @@ from propose.propose.poses.human36m import Human36mPose
 
 sys.path.append("/src")
 
-from chick.config import cfg_to_dict, get_experiment_config
-from chick.dataset.temporal import Human36mDataset
-from chick.energies import energies
-from chick.pipeline import SkeletonPipeline
-from chick.platform import platform
-from chick.utils.palettes import palettes
-from chick.utils.plot_utils import plot_2D, plot_3D
-from chick.utils.reproducibility import set_random_seed
+from platypose.config import cfg_to_dict, get_experiment_config
+from platypose.dataset.temporal import Human36mDataset
+from platypose.energies import energies
+from platypose.pipeline import SkeletonPipeline
+from platypose.platform import platform
+from platypose.utils.palettes import palettes
+from platypose.utils.plot_utils import plot_2D, plot_3D
+from platypose.utils.reproducibility import set_random_seed
 from propose.propose.cameras.Camera import Camera, DummyCamera
 from propose.propose.evaluation.calibration import calibration
 from propose.propose.evaluation.mpjpe import mpjpe, pa_mpjpe
@@ -36,7 +36,7 @@ minMPJPES = []
 
 if __name__ == "__main__":
     print(cfg)
-    platform.init(project="chick", entity="sinzlab", name=f"eval_{time.time()}")
+    platform.init(project="platypose", entity="sinzlab", name=f"eval_{time.time()}")
     platform.config.update(cfg_to_dict(cfg))
 
     set_random_seed(cfg.seed)
