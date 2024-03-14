@@ -16,6 +16,9 @@
   <img src="./assets/sittingdown.gif" width="24%" />
 </p>
 
+## Pretrained Model
+The model weights are available on the [Hugging Face Model Hub](https://huggingface.co/sinzlab/platypose).
+
 ## Reproducing the results
 
 #### 1. Download the data
