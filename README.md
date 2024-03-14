@@ -1,4 +1,4 @@
-# 🐣 Platypose: Calibrated Zero-Shot Multi-Hypothesis 3D Human Motion Estimation
+# Platypose: Calibrated Zero-Shot Multi-Hypothesis 3D Human Motion Estimation
 
 <p align="center">
   <img width="100%" src="assets/logo_wide.png" alt="Platypose Logo">
@@ -7,7 +7,14 @@
 > [**Platypose: Calibrated Zero-Shot Multi-Hypothesis 3D Human Motion Estimation**](https://arxiv.org/abs/2403.06164), \
 > Pawel A. Pierzchlewicz, Caio Oliviera, James Cotton, Fabian H. Sinz
 >
-> [[arXiv]](https://arxiv.org/abs/2403.06164)
+> [[arXiv]](https://arxiv.org/abs/2403.06164) [[project page]](https://sinzlab.org/publications/2024-platypose.html)
+
+<p align="center">
+  <img src="./assets/directions.gif" width="24%" />
+  <img src="./assets/discussion.gif" width="24%" />
+  <img src="./assets/eating.gif" width="24%" />
+  <img src="./assets/sittingdown.gif" width="24%" />
+</p>
 
 ## Reproducing the results
 
