@@ -1,4 +1,5 @@
 # Platypose: Calibrated Zero-Shot Multi-Hypothesis 3D Human Motion Estimation
+<a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"></a> [![arXiv](https://img.shields.io/badge/arXiv-2403.06164-b31b1b.svg)](https://arxiv.org/abs/2403.06164) <a href="https://sinzlab.org/publications/2024-platypose.html"><img alt="Project" src="https://img.shields.io/badge/-Project%20Page-lightgrey?logo=Google%20Chrome&color=informational&logoColor=white"></a> [![Hugging Face Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-ffab41)](https://huggingface.co/sinzlab/platypose)
 
 <p align="center">
   <img width="100%" src="assets/logo_wide.png" alt="Platypose Logo">
@@ -7,7 +8,7 @@
 > [**Platypose: Calibrated Zero-Shot Multi-Hypothesis 3D Human Motion Estimation**](https://arxiv.org/abs/2403.06164), \
 > Pawel A. Pierzchlewicz, Caio Oliviera, James Cotton, Fabian H. Sinz
 >
-> [[arXiv]](https://arxiv.org/abs/2403.06164) [[project page]](https://sinzlab.org/publications/2024-platypose.html)
+> [[arXiv]](https://arxiv.org/abs/2403.06164) [[project page]](https://sinzlab.org/publications/2024-platypose.html) [[Hugging Face]](https://huggingface.co/sinzlab/platypose).
 
 <p align="center">
   <img src="./assets/directions.gif" width="24%" />
@@ -16,8 +17,19 @@
   <img src="./assets/sittingdown.gif" width="24%" />
 </p>
 
+## Installation
+1. Clone the repository.
+2. Then install poetry if you don't have it yet:
+```bash
+pip install poetry
+```
+3. Finally you can easily install the project using poetry.
+```python
+poetry install
+```
+
 ## Pretrained Model
-The model weights are available on the [Hugging Face Model Hub](https://huggingface.co/sinzlab/platypose).
+The model weights are available on the [Hugging Face](https://huggingface.co/sinzlab/platypose).
 
 ## Reproducing the results
 
