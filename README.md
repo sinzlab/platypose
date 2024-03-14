@@ -6,7 +6,7 @@
 </p>
 
 > [**Platypose: Calibrated Zero-Shot Multi-Hypothesis 3D Human Motion Estimation**](https://arxiv.org/abs/2403.06164), \
-> Pawel A. Pierzchlewicz, Caio Oliviera, James Cotton, Fabian H. Sinz
+> Pawel A. Pierzchlewicz, Caio da Silva, James Cotton, Fabian H. Sinz
 >
 > [[arXiv]](https://arxiv.org/abs/2403.06164) [[project page]](https://sinzlab.org/publications/2024-platypose.html) [[Hugging Face]](https://huggingface.co/sinzlab/platypose).
 
